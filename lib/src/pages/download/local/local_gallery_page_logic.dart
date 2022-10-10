@@ -1,4 +1,5 @@
 import 'dart:io' as io;
+import 'dart:io';
 
 import 'package:get/get.dart';
 import 'package:jhentai/src/mixin/scroll_to_top_logic_mixin.dart';
@@ -9,7 +10,9 @@ import '../../../routes/routes.dart';
 import '../../../service/local_gallery_service.dart';
 import '../../../service/storage_service.dart';
 import '../../../setting/download_setting.dart';
+import '../../../setting/read_setting.dart';
 import '../../../utils/log.dart';
+import '../../../utils/process_util.dart';
 import '../../../utils/route_util.dart';
 import '../../../utils/toast_util.dart';
 import 'local_gallery_page_state.dart';
@@ -73,20 +76,24 @@ class LocalGalleryPageLogic extends GetxController with GetTickerProviderStateMi
   }
 
   void goToReadPage(LocalGallery gallery) {
-    String storageKey = 'readIndexRecord::${gallery.title}';
-    int readIndexRecord = storageService.read(storageKey) ?? 0;
+    if (ReadSetting.useThirdPartyViewer.isTrue && ReadSetting.thirdPartyViewerPath.value != null) {
+      openThirdPartyViewer(gallery.path);
+    } else {
+      String storageKey = 'readIndexRecord::${gallery.title}';
+      int readIndexRecord = storageService.read(storageKey) ?? 0;
 
-    toRoute(
-      Routes.read,
-      arguments: ReadPageInfo(
-        mode: ReadMode.local,
-        initialIndex: readIndexRecord,
-        currentIndex: readIndexRecord,
-        pageCount: gallery.pageCount,
-        readProgressRecordStorageKey: storageKey,
-        images: localGalleryService.allGallerys.firstWhere((g) => g.title == gallery.title).images,
-      ),
-    );
+      toRoute(
+        Routes.read,
+        arguments: ReadPageInfo(
+          mode: ReadMode.local,
+          initialIndex: readIndexRecord,
+          currentIndex: readIndexRecord,
+          pageCount: gallery.pageCount,
+          readProgressRecordStorageKey: storageKey,
+          images: localGalleryService.allGallerys.firstWhere((g) => g.title == gallery.title).images,
+        ),
+      );
+    }
   }
 
   void toggleAggregateDirectory() {

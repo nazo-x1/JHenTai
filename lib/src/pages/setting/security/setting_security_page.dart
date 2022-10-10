@@ -13,18 +13,12 @@ class SettingSecurityPage extends StatelessWidget {
         () => ListView(
           padding: const EdgeInsets.only(top: 16),
           children: [
-            if (SecuritySetting.supportFingerPrintLock) _buildEnableFingerPrintLock(),
             _buildEnableBlurBackgroundApp(),
+            if (SecuritySetting.supportBiometricLock) _buildEnableBiometricLock(),
+            if (SecuritySetting.supportBiometricLock) _buildEnableBiometricLockOnResume(),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildEnableFingerPrintLock() {
-    return ListTile(
-      title: Text('enableFingerPrintLock'.tr),
-      trailing: Switch(value: SecuritySetting.enableFingerPrintLock.value, onChanged: SecuritySetting.saveEnableFingerPrintLock),
     );
   }
 
@@ -32,6 +26,22 @@ class SettingSecurityPage extends StatelessWidget {
     return ListTile(
       title: Text('enableBlurBackgroundApp'.tr),
       trailing: Switch(value: SecuritySetting.enableBlur.value, onChanged: SecuritySetting.saveEnableBlur),
+    );
+  }
+
+  Widget _buildEnableBiometricLock() {
+    return ListTile(
+      title: Text('enableBiometricLock'.tr),
+      trailing: Switch(value: SecuritySetting.enableBiometricLock.value, onChanged: SecuritySetting.saveEnableBiometricLock),
+    );
+  }
+
+  Widget _buildEnableBiometricLockOnResume() {
+    return SwitchListTile(
+      title: Text('enableBiometricLockOnResume'.tr),
+      subtitle: Text('enableBiometricLockOnResumeHints'.tr),
+      value: SecuritySetting.enableBiometricLockOnResume.value,
+      onChanged: SecuritySetting.saveEnableBiometricLockOnResume,
     );
   }
 }

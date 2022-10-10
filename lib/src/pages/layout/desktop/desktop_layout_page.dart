@@ -32,8 +32,9 @@ class DesktopLayoutPage extends StatelessWidget {
           Expanded(
             child: ResizableWidget(
               separatorColor: Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
-              separatorSize: 7.5,
-              separatorBuilder: (SeparatorArgsInfo info, SeparatorController controller) => EHSeparator(info: info, controller: controller),
+              separatorSize: GetPlatform.isWindows ? 7.5 : 1.5,
+              separatorBuilder: (SeparatorArgsInfo info, SeparatorController controller) =>
+                  GetPlatform.isWindows ? EHSeparator(info: info, controller: controller) : DefaultSeparator(info: info, controller: controller),
               percentages: [state.leftColumnWidthRatio, 1 - state.leftColumnWidthRatio],
               onResized: logic.windowService.handleResized,
               isDisabledSmartHide: true,
@@ -79,10 +80,7 @@ class DesktopLayoutPage extends StatelessWidget {
                     Expanded(
                       child: FocusWidget(
                         enableFocus: state.icons[index].routeName != Routes.setting,
-                        focusedDecoration: BoxDecoration(
-                          color: Colors.grey,
-                          border: Border(left: BorderSide(width: 4, color: Get.theme.colorScheme.onBackground)),
-                        ),
+                        focusedDecoration: const BoxDecoration(color: Colors.grey),
                         handleTapEnter: () => logic.handleTapTabBarButton(index),
                         handleTapArrowRight: () {
                           if (state.selectedTabIndex != index) {
@@ -92,9 +90,19 @@ class DesktopLayoutPage extends StatelessWidget {
                           }
                         },
                         child: ExcludeFocus(
-                          child: IconButton(
-                            onPressed: () => logic.handleTapTabBarButton(index),
-                            icon: state.selectedTabIndex == index ? state.icons[index].selectedIcon : state.icons[index].unselectedIcon,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                border: state.selectedTabIndex == index
+                                    ? Border(left: BorderSide(width: 4, color: Get.theme.colorScheme.onBackground))
+                                    : null,
+                              ),
+                              child: IconButton(
+                                onPressed: () => logic.handleTapTabBarButton(index),
+                                icon: state.selectedTabIndex == index ? state.icons[index].selectedIcon : state.icons[index].unselectedIcon,
+                              ),
+                            ),
                           ),
                         ),
                       ),

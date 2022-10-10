@@ -22,6 +22,7 @@ import 'package:path/path.dart';
 import 'package:retry/retry.dart';
 
 import '../model/gallery_image.dart';
+import '../utils/file_util.dart';
 import '../utils/log.dart';
 import '../utils/snack_util.dart';
 import 'gallery_download_service.dart';
@@ -222,7 +223,7 @@ class ArchiveDownloadService extends GetxController {
     allGroups.remove(group);
 
     try {
-      return (await appDb.deleteGalleryGroup(group) > 0);
+      return (await appDb.deleteArchiveGroup(group) > 0);
     } on SqliteException catch (e) {
       Log.info(e);
       return false;
@@ -273,15 +274,11 @@ class ArchiveDownloadService extends GetxController {
   }
 
   List<GalleryImage> getUnpackedImages(ArchiveDownloadedData archive) {
-    io.Directory directory = io.Directory(_computeArchiveUnpackingPath(archive));
+    io.Directory directory = io.Directory(computeArchiveUnpackingPath(archive));
 
     List<io.File> imageFiles;
     try {
-      imageFiles = directory
-          .listSync()
-          .whereType<io.File>()
-          .where((image) => RegExp('.jpg|.png|.gif|.jpeg').firstMatch(extension(image.path)) != null)
-          .toList();
+      imageFiles = directory.listSync().whereType<io.File>().where((image) => FileUtil.isImageExtension(image.path)).toList();
     } on Exception catch (e) {
       toast('getUnpackedImagesFailedMsg'.tr, isShort: false);
       Log.upload(e, extraInfos: {'dirs': directory.parent.listSync()});
@@ -294,9 +291,15 @@ class ArchiveDownloadService extends GetxController {
     for (io.File file in imageFiles) {
       Size size;
       try {
+        /// For some reason i don't know, .gif image's footer is 0x00, which will cause `image_size` throw exception.
+        /// so i don't check .gif image's footer
         size = ImageSizeGetter.getSize(FileInput(file));
       } on Exception catch (e) {
-        Log.error("Parse archive images failed!", e);
+        Log.error("Parse archive images failed! Path: ${file.path}", e);
+        Log.upload(e, extraInfos: {'path': file.path, 'info': file.statSync()});
+        continue;
+      } on Error catch (e) {
+        Log.error("Parse archive images failed! Path: ${file.path}", e);
         Log.upload(e, extraInfos: {'path': file.path, 'info': file.statSync()});
         continue;
       }
@@ -329,7 +332,7 @@ class ArchiveDownloadService extends GetxController {
     return join(DownloadSetting.downloadPath.value, 'Archive - ${archive.gid} - $title.zip');
   }
 
-  String _computeArchiveUnpackingPath(ArchiveDownloadedData archive) {
+  String computeArchiveUnpackingPath(ArchiveDownloadedData archive) {
     String title = _computeArchiveTitle(archive.title);
 
     return join(DownloadSetting.downloadPath.value, 'Archive - ${archive.gid} - $title');
@@ -564,9 +567,11 @@ class ArchiveDownloadService extends GetxController {
       Log.upload(Exception('Invalid archive!'), extraInfos: {
         'code': response.statusCode,
         'headers': response.headers,
+        'body': response.data.toString(),
+        'archive': archiveDownloadInfo.toString(),
       });
       await _deletePackingFileInDisk(archive);
-      await Future.delayed(const Duration(milliseconds: 1000));
+      await Future.delayed(const Duration(milliseconds: 5000));
       return _doDownloadArchive(archive);
     }
 
@@ -593,7 +598,7 @@ class ArchiveDownloadService extends GetxController {
     InputFileStream inputStream = InputFileStream(_computePackingFileDownloadPath(archive));
     try {
       Archive unpackedDir = ZipDecoder().decodeBuffer(inputStream);
-      extractArchiveToDisk(unpackedDir, _computeArchiveUnpackingPath(archive));
+      extractArchiveToDisk(unpackedDir, computeArchiveUnpackingPath(archive));
     } on Exception catch (e) {
       Log.error('Unpacking error!', e);
       Log.upload(e);
@@ -735,7 +740,7 @@ class ArchiveDownloadService extends GetxController {
   // DISK
 
   void _saveArchiveInfoInDisk(ArchiveDownloadedData archive) {
-    io.File file = io.File(join(_computeArchiveUnpackingPath(archive), metadataFileName));
+    io.File file = io.File(join(computeArchiveUnpackingPath(archive), metadataFileName));
     if (!file.existsSync()) {
       file.createSync(recursive: true);
     }
@@ -754,14 +759,19 @@ class ArchiveDownloadService extends GetxController {
   Future<void> _deleteArchiveInDisk(ArchiveDownloadedData archive) async {
     await _deletePackingFileInDisk(archive);
 
-    io.Directory directory = io.Directory(_computeArchiveUnpackingPath(archive));
+    io.Directory directory = io.Directory(computeArchiveUnpackingPath(archive));
     if (directory.existsSync()) {
       directory.deleteSync(recursive: true);
     }
   }
 
   void _ensureDownloadDirExists() {
-    io.Directory(DownloadSetting.downloadPath.value).createSync(recursive: true);
+    try {
+      io.Directory(DownloadSetting.downloadPath.value).createSync(recursive: true);
+    } on Exception catch (e) {
+      Log.error(e);
+      Log.upload(e);
+    }
   }
 }
 
@@ -789,6 +799,11 @@ class ArchiveDownloadInfo {
     required this.downloadedBytesBeforeDownload,
     required this.group,
   });
+
+  @override
+  String toString() {
+    return 'ArchiveDownloadInfo{downloadPageUrl: $downloadPageUrl, downloadUrl: $downloadUrl, archiveStatus: $archiveStatus, cancelToken: $cancelToken, speedComputer: $speedComputer, downloadedBytesBeforeDownload: $downloadedBytesBeforeDownload, group: $group}';
+  }
 }
 
 enum ArchiveStatus {

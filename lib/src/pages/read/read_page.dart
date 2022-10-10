@@ -392,7 +392,9 @@ class ReadPage extends StatelessWidget {
           return Center(child: UIConfig.loadingAnimation);
         }
 
-        return Center(child: EHThumbnail(thumbnail: state.thumbnails[index]!));
+        return Center(
+          child: EHThumbnail(thumbnail: state.thumbnails[index]!),
+        );
       },
     );
   }

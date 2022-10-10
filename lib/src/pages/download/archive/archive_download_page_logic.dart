@@ -1,6 +1,5 @@
-import 'package:flutter/animation.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'dart:io';
+
 import 'package:get/get.dart';
 import 'package:jhentai/src/widget/eh_download_dialog.dart';
 
@@ -11,6 +10,8 @@ import '../../../model/read_page_info.dart';
 import '../../../routes/routes.dart';
 import '../../../service/archive_download_service.dart';
 import '../../../service/storage_service.dart';
+import '../../../setting/read_setting.dart';
+import '../../../utils/process_util.dart';
 import '../../../utils/route_util.dart';
 import '../../../widget/eh_alert_dialog.dart';
 import 'archive_download_page_state.dart';
@@ -123,23 +124,27 @@ class ArchiveDownloadPageLogic extends GetxController with GetTickerProviderStat
       return;
     }
 
-    String storageKey = 'readIndexRecord::${archive.gid}';
-    int readIndexRecord = storageService.read(storageKey) ?? 0;
-    List<GalleryImage> images = archiveDownloadService.getUnpackedImages(archive);
+    if (ReadSetting.useThirdPartyViewer.isTrue && ReadSetting.thirdPartyViewerPath.value != null) {
+      openThirdPartyViewer(archiveDownloadService.computeArchiveUnpackingPath(archive));
+    } else {
+      String storageKey = 'readIndexRecord::${archive.gid}';
+      int readIndexRecord = storageService.read(storageKey) ?? 0;
+      List<GalleryImage> images = archiveDownloadService.getUnpackedImages(archive);
 
-    toRoute(
-      Routes.read,
-      arguments: ReadPageInfo(
-        mode: ReadMode.archive,
-        gid: archive.gid,
-        galleryUrl: archive.galleryUrl,
-        initialIndex: readIndexRecord,
-        currentIndex: readIndexRecord,
-        pageCount: images.length,
-        isOriginal: archive.isOriginal,
-        readProgressRecordStorageKey: storageKey,
-        images: images,
-      ),
-    );
+      toRoute(
+        Routes.read,
+        arguments: ReadPageInfo(
+          mode: ReadMode.archive,
+          gid: archive.gid,
+          galleryUrl: archive.galleryUrl,
+          initialIndex: readIndexRecord,
+          currentIndex: readIndexRecord,
+          pageCount: images.length,
+          isOriginal: archive.isOriginal,
+          readProgressRecordStorageKey: storageKey,
+          images: images,
+        ),
+      );
+    }
   }
 }

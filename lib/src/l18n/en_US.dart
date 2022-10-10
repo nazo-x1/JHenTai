@@ -98,6 +98,7 @@ class en_US {
       'getGalleryDetailFailed': 'Get Gallery Detail Failed',
       'invisible2User': 'This Gallery is invisible to You',
       'invisibleHints': 'This gallery is removed or unavailable.',
+      'copyRightHints': 'This gallery is unavailable due to a copyright claim by',
       'refreshGalleryDetailsFailed': 'Refresh Gallery Details Failed',
       'failToGetThumbnails': "Fail To Get Thumbnails",
       'favoriteGalleryFailed': "Favorite Gallery Failed",
@@ -162,6 +163,8 @@ class en_US {
       'toPrev': 'To prev',
       'back': 'Back',
       'toggleMenu': 'Toggle menu',
+      'share': 'Share',
+      'save': 'Save to Pictures',
 
       /// setting page
       'account': 'Account',
@@ -228,6 +231,7 @@ class en_US {
       'listWithTags': 'Card',
       'waterfallFlowWithImageOnly': 'Waterfall Flow(Image Only)',
       'waterfallFlowWithImageAndInfo': 'Waterfall Flow',
+      'moveCover2RightSide': 'Move Cover to Right Side',
       'coverStyle': 'Cover Style',
       'cover': 'Cover',
       'adaptive': 'Adaptive',
@@ -263,6 +267,7 @@ class en_US {
       'clearImagesCache': 'Clear Images Cache',
       'longPress2Clear': 'Long press to clear',
       'checkUpdateAfterLaunchingApp': 'Check update after launching app',
+      'checkClipboard': 'Check Gallery URL in Clipboard',
       'clearPageCache': 'Clear Page Cache',
       'clearSuccess': 'Clear Success',
 
@@ -270,13 +275,17 @@ class en_US {
       'hostDataSource': 'No need to change by default.\nData source: https://dns.google/',
 
       /// security setting page
-      'enableFingerPrintLock': 'Enable FingerPrint Lock',
+      'enableBiometricLock': 'Enable Biometric Auth on Launch',
+      'enableBiometricLockOnResume': 'Enable Biometric Auth on Resume',
+      'enableBiometricLockOnResumeHints': '3 seconds delay',
       'enableBlurBackgroundApp': 'Enable Blur Page When Switch to Background',
 
       /// read setting page
       'enableImmersiveMode': 'Enable Immersive Mode',
       'enableImmersiveHint': 'Hide System Bar',
       'readDirection': 'Read Direction',
+      'useThirdPartyViewer': 'Use Custom Viewer',
+      'thirdPartyViewerPath': 'Custom Viewer Path(Executable file)',
       'showThumbnails': 'Show Thumbnails',
       'showStatusInfo': 'Show Status at Bottom',
       'autoModeInterval': 'Turn Page Interval',
@@ -352,7 +361,7 @@ class en_US {
       'watched': 'Watched',
       'history': 'History',
       'keyword': 'Keyword',
-      'backspace2DeleteTag':'Backspace to Delete Tag',
+      'backspace2DeleteTag': 'Backspace to Delete Tag',
       'searchGalleryName': 'Search Gallery Name',
       'searchGalleryTags': 'Search Gallery Tags',
       'searchGalleryDescription': 'Search Gallery Description',

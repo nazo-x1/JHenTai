@@ -12,6 +12,7 @@ import 'package:jhentai/src/service/gallery_download_service.dart';
 import 'package:jhentai/src/service/local_gallery_service.dart';
 import 'package:jhentai/src/service/quick_search_service.dart';
 import 'package:jhentai/src/service/relogin_service.dart';
+import 'package:jhentai/src/service/volume_service.dart';
 import 'package:jhentai/src/service/windows_service.dart';
 import 'package:jhentai/src/setting/mouse_setting.dart';
 import 'package:jhentai/src/setting/network_setting.dart';
@@ -75,7 +76,7 @@ class MyApp extends StatelessWidget {
       translations: LocaleText(),
 
       getPages: Routes.pages,
-      initialRoute: SecuritySetting.enableFingerPrintLock.isTrue ? Routes.lock : Routes.home,
+      initialRoute: SecuritySetting.enableBiometricLock.isTrue ? Routes.lock : Routes.home,
       navigatorObservers: [GetXRouterObserver(), SentryNavigatorObserver()],
       builder: (context, child) => AppStateListener(child: child!),
 
@@ -157,6 +158,8 @@ Future<void> onReady() async {
 
   ArchiveDownloadService.init();
   LocalGalleryService.init();
+
+  VolumeService.init();
 }
 
 void _doForDesktop() {
@@ -166,6 +169,7 @@ void _doForDesktop() {
 
   doWhenWindowReady(() {
     appWindow.title = 'JHenTai';
+    appWindow.size = const Size(1280, 720);
 
     if (Get.find<StorageService>().read('windowMaximize') == true) {
       appWindow.maximize();

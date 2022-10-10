@@ -98,6 +98,7 @@ class zh_CN {
       'getGalleryDetailFailed': '获取画廊详情失败',
       'invisible2User': '此画廊对您不可见',
       'invisibleHints': '画廊已被删除或对您进行了限制',
+      'copyRightHints': '该画廊因为版权已被删除，版权作者：',
       'refreshGalleryDetailsFailed': '刷新画廊详情失败',
       'failToGetThumbnails': "获取画廊缩略图数据失败",
       'favoriteGalleryFailed': "收藏画廊错误",
@@ -161,6 +162,8 @@ class zh_CN {
       'toPrev': '上一页',
       'back': '返回',
       'toggleMenu': '展示/隐藏菜单',
+      'share': '分享',
+      'save': '保存至图库',
 
       /// setting page
       'account': '账户',
@@ -227,6 +230,7 @@ class zh_CN {
       'listWithTags': '卡片',
       'waterfallFlowWithImageOnly': '瀑布流(仅图片)',
       'waterfallFlowWithImageAndInfo': '瀑布流',
+      'moveCover2RightSide': '移动封面图至右侧',
       'coverStyle': '封面图片样式',
       'cover': '覆盖',
       'adaptive': '自适应',
@@ -262,6 +266,7 @@ class zh_CN {
       'clearImagesCache': '清除图片缓存',
       'longPress2Clear': '长按清除',
       'checkUpdateAfterLaunchingApp': '启动应用时检查更新',
+      'checkClipboard': '检测剪切板中的画廊链接',
       'clearPageCache': '清除页面缓存',
       'clearSuccess': '清除成功',
 
@@ -269,13 +274,17 @@ class zh_CN {
       'hostDataSource': '默认情况下不用改动。\n数据来源: https://dns.google/',
 
       /// security setting page
-      'enableFingerPrintLock': '开启指纹锁',
+      'enableBiometricLock': '开启生物认证（启动时）',
+      'enableBiometricLockOnResume': '开启生物认证（切换至前台时）',
+      'enableBiometricLockOnResumeHints': '需要切换至后台超过3s',
       'enableBlurBackgroundApp': '在任务栏中模糊应用页面',
 
       /// read setting page
       'enableImmersiveMode': '开启沉浸模式',
       'enableImmersiveHint': '隐藏系统状态栏和底部导航栏',
       'readDirection': '阅读方向',
+      'useThirdPartyViewer': '使用第三方阅读器',
+      'thirdPartyViewerPath': '第三方阅读器路径（可执行文件）',
       'showThumbnails': '显示缩略图',
       'showStatusInfo': '底部显示状态信息',
       'autoModeInterval': '自动模式翻页时间',
@@ -350,7 +359,7 @@ class zh_CN {
       'watched': '关注',
       'history': '历史',
       'keyword': '关键词',
-      'backspace2DeleteTag':'双击退格来删除标签',
+      'backspace2DeleteTag': '双击退格来删除标签',
       'searchGalleryName': '搜索画廊名字',
       'searchGalleryTags': '搜索画廊标签',
       'searchGalleryDescription': '搜索画廊描述',

@@ -1,13 +1,13 @@
+import 'package:animated_flip_counter/animated_flip_counter.dart';
 import 'package:dio/dio.dart';
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_utils/get_utils.dart';
 import 'package:jhentai/src/config/ui_config.dart';
 import 'package:jhentai/src/consts/eh_consts.dart';
+import 'package:jhentai/src/extension/state_extension.dart';
 import 'package:jhentai/src/mixin/login_required_logic_mixin.dart';
 import 'package:jhentai/src/pages/details/details_page_logic.dart';
 import 'package:jhentai/src/pages/details/details_page_state.dart';
@@ -23,7 +23,6 @@ import '../../../utils/check_util.dart';
 import '../../../setting/user_setting.dart';
 import '../../../utils/log.dart';
 import '../../../utils/route_util.dart';
-import '../../../utils/snack_util.dart';
 
 class EHComment extends StatefulWidget {
   final GalleryComment comment;
@@ -287,10 +286,14 @@ class _EHCommentFooterState extends State<_EHCommentFooter> with LoginRequiredMi
           constraints: const BoxConstraints(minWidth: 32),
           child: Align(
             alignment: Alignment.centerRight,
-            child: Text(
-              score.isNotEmpty ? score : 'uploader'.tr,
-              style: TextStyle(fontSize: UIConfig.commentScoreSize, color: UIConfig.commentFooterTextColor),
-            ),
+            child: score.isEmpty
+                ? Text('uploader'.tr, style: TextStyle(fontSize: UIConfig.commentScoreSize, color: UIConfig.commentFooterTextColor))
+                : AnimatedFlipCounter(
+                    prefix: score.substring(0, 1),
+                    value: int.parse(score.substring(1)),
+                    duration: const Duration(milliseconds: 700),
+                    textStyle: TextStyle(fontSize: UIConfig.commentScoreSize, color: UIConfig.commentFooterTextColor),
+                  ),
           ),
         ),
       ],
@@ -334,7 +337,8 @@ class _EHCommentFooterState extends State<_EHCommentFooter> with LoginRequiredMi
       return _doVoteComment(commentId, isVotingUp);
     }
 
-    setState(() {
+
+    setStateIfMounted(() {
       score = newScore >= 0 ? '+' + newScore.toString() : newScore.toString();
     });
   }

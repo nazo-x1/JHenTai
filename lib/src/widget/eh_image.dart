@@ -31,6 +31,7 @@ class EHImage extends StatelessWidget {
   final bool enableSlideOutPage;
   final BorderRadius? borderRadius;
   final Object? heroTag;
+  final bool clearMemoryCacheWhenDispose;
   final List<BoxShadow>? shadows;
   final LoadingProgressWidgetBuilder? loadingWidgetBuilder;
   final FailedWidgetBuilder? failedWidgetBuilder;
@@ -50,6 +51,7 @@ class EHImage extends StatelessWidget {
     this.enableSlideOutPage = false,
     this.borderRadius,
     this.heroTag,
+    this.clearMemoryCacheWhenDispose = false,
     this.shadows,
     this.downloadingWidgetBuilder,
     this.pausedWidgetBuilder,
@@ -70,6 +72,7 @@ class EHImage extends StatelessWidget {
     this.enableSlideOutPage = false,
     this.borderRadius,
     this.heroTag,
+    this.clearMemoryCacheWhenDispose = false,
     this.shadows,
     this.loadingWidgetBuilder,
     this.failedWidgetBuilder,
@@ -95,11 +98,13 @@ class EHImage extends StatelessWidget {
       Size(containerWidth ?? double.infinity, containerHeight ?? double.infinity),
     );
 
+    /// Outer container for layout and background color
     return Container(
       height: containerHeight,
       width: containerWidth,
       decoration: BoxDecoration(color: containerColor, borderRadius: borderRadius),
       child: Center(
+        /// inner container for shadows, whose size is the same as image
         child: Container(
           height: fittedSizes.destination.height,
           width: fittedSizes.destination.width,
@@ -124,6 +129,7 @@ class EHImage extends StatelessWidget {
       // headers: _cookieHeaders(galleryImage.url),
       borderRadius: borderRadius,
       shape: borderRadius != null ? BoxShape.rectangle : null,
+      clearMemoryCacheWhenDispose: clearMemoryCacheWhenDispose,
       loadStateChanged: (ExtendedImageState state) {
         switch (state.extendedImageLoadState) {
           case LoadState.loading:
@@ -155,7 +161,7 @@ class EHImage extends StatelessWidget {
     }
 
     return ExtendedImage.file(
-      io.File(_computeFilePath(galleryImage.path!)),
+      io.File(GalleryDownloadService.computeImageDownloadAbsolutePathFromRelativePath(galleryImage.path!)),
       fit: fit,
       mode: mode,
       height: containerHeight,
@@ -164,6 +170,7 @@ class EHImage extends StatelessWidget {
       enableSlideOutPage: enableSlideOutPage,
       borderRadius: borderRadius,
       shape: borderRadius != null ? BoxShape.rectangle : null,
+      clearMemoryCacheWhenDispose: clearMemoryCacheWhenDispose,
       loadStateChanged: (ExtendedImageState state) {
         if (state.extendedImageLoadState == LoadState.completed) {
           return FadeIn(
@@ -173,17 +180,6 @@ class EHImage extends StatelessWidget {
         return null;
       },
     );
-  }
-
-  String _computeFilePath(String imageRelativePath) {
-    String path = p.join(PathSetting.getVisibleDir().path, imageRelativePath);
-
-    /// I don't know why some images can't be loaded on Windows... If you knows, please inform me
-    if (!GetPlatform.isWindows) {
-      return path;
-    }
-
-    return p.join(p.rootPrefix(path), p.relative(path, from: p.rootPrefix(path)));
   }
 
   double _computeLoadingProgress(ImageChunkEvent? loadingProgress, ImageInfo? extendedImageInfo) {

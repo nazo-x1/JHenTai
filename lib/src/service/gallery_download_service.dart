@@ -13,12 +13,12 @@ import 'package:get/state_manager.dart';
 import 'package:intl/intl.dart';
 import 'package:jhentai/src/database/database.dart';
 import 'package:jhentai/src/model/gallery_thumbnail.dart';
-import 'package:jhentai/src/utils/check_util.dart';
 import 'package:jhentai/src/setting/download_setting.dart';
 import 'package:jhentai/src/setting/site_setting.dart';
 import 'package:jhentai/src/utils/speed_computer.dart';
 import 'package:jhentai/src/utils/log.dart';
 import 'package:path/path.dart' as path;
+import 'package:path/path.dart';
 import 'package:retry/retry.dart';
 
 import '../exception/cancel_exception.dart';
@@ -492,7 +492,7 @@ class GalleryDownloadService extends GetxController {
     return title;
   }
 
-  String _computeGalleryDownloadPath(String rawTitle, int gid) {
+  String computeGalleryDownloadPath(String rawTitle, int gid) {
     String title = _computeGalleryTitle(rawTitle);
     return path.join(DownloadSetting.downloadPath.value, '$gid - $title');
   }
@@ -502,7 +502,7 @@ class GalleryDownloadService extends GetxController {
     String? ext = imageUrl.contains('fullimg.php') ? 'jpg' : imageUrl.split('.').last;
 
     return path.join(
-      _computeGalleryDownloadPath(title, gid),
+      computeGalleryDownloadPath(title, gid),
       '$serialNo.$ext',
     );
   }
@@ -512,6 +512,17 @@ class GalleryDownloadService extends GetxController {
       _computeImageDownloadAbsolutePath(title, gid, imageUrl, serialNo),
       from: PathSetting.getVisibleDir().path,
     );
+  }
+
+  static String computeImageDownloadAbsolutePathFromRelativePath(String imageRelativePath) {
+    String path = join(PathSetting.getVisibleDir().path, imageRelativePath);
+
+    /// I don't know why some images can't be loaded on Windows... If you knows, please inform me
+    if (!GetPlatform.isWindows) {
+      return path;
+    }
+
+    return join(rootPrefix(path), relative(path, from: rootPrefix(path)));
   }
 
   void _sortGalleryAndGroups() {
@@ -623,14 +634,14 @@ class GalleryDownloadService extends GetxController {
 
       GalleryDownloadInfo galleryDownloadInfo = galleryDownloadInfos[gallery.gid]!;
 
-      List<GalleryThumbnail> thumbnails;
+      Map<String, dynamic> rangeAndThumbnails;
       try {
-        thumbnails = await retry(
+        rangeAndThumbnails = await retry(
           () => EHRequest.requestDetailPage(
             galleryUrl: gallery.galleryUrl,
             thumbnailsPageIndex: serialNo ~/ galleryDownloadInfo.thumbnailsCountPerPage,
             cancelToken: galleryDownloadInfo.cancelToken,
-            parser: EHSpiderParser.detailPage2Thumbnails,
+            parser: EHSpiderParser.detailPage2RangeAndThumbnails,
           ),
           retryIf: (e) => e is DioError && e.type != DioErrorType.cancel && e.error is! EHException,
           onRetry: (e) => Log.download('Parse image hrefs failed, retry. Reason: ${(e as DioError).message}'),
@@ -655,23 +666,16 @@ class GalleryDownloadService extends GetxController {
         );
       }
 
+      int rangeFrom = rangeAndThumbnails['rangeIndexFrom'];
+      int rangeTo = rangeAndThumbnails['rangeIndexTo'];
+      List<GalleryThumbnail> thumbnails = rangeAndThumbnails['thumbnails'];
+
       /// some gallery's [thumbnailsCountPerPage] is not equal to default setting, we need to compute and update it.
       /// For example, default setting is 40, but some gallerys' thumbnails has only high quality thumbnails, which results in 20.
       galleryDownloadInfo.thumbnailsCountPerPage = (thumbnails.length / 20).ceil() * 20;
-      int from = serialNo ~/ galleryDownloadInfo.thumbnailsCountPerPage * galleryDownloadInfo.thumbnailsCountPerPage;
 
-      CheckUtil.build(
-        () => from + thumbnails.length <= galleryDownloadInfo.imageHrefs.length,
-        errorMsg: "Out of index of imageHrefs!",
-      ).withUploadParam({
-        'pageCount': gallery.pageCount,
-        'imageHrefsLength': galleryDownloadInfo.imageHrefs.length,
-        'from': from,
-        'thumbnailsLength': thumbnails.length,
-      }).check(throwExceptionWhenFailed: false);
-
-      for (int i = 0; i < thumbnails.length && from + i < galleryDownloadInfo.imageHrefs.length; i++) {
-        galleryDownloadInfo.imageHrefs[from + i] = thumbnails[i];
+      for (int i = rangeFrom; i <= rangeTo; i++) {
+        galleryDownloadInfo.imageHrefs[i] = thumbnails[i - rangeFrom];
       }
 
       /// if gallery's [thumbnailsCountPerPage] is not equal to default setting, we probably can't get target thumbnails this turn
@@ -1153,7 +1157,7 @@ class GalleryDownloadService extends GetxController {
       'images': jsonEncode(galleryDownloadInfo.images),
     };
 
-    io.File file = io.File(path.join(_computeGalleryDownloadPath(gallery.title, gallery.gid), metadataFileName));
+    io.File file = io.File(path.join(computeGalleryDownloadPath(gallery.title, gallery.gid), metadataFileName));
     if (!file.existsSync()) {
       file.createSync(recursive: true);
     }
@@ -1161,7 +1165,7 @@ class GalleryDownloadService extends GetxController {
   }
 
   void _clearDownloadedImageInDisk(GalleryDownloadedData gallery) {
-    io.Directory directory = io.Directory(_computeGalleryDownloadPath(gallery.title, gallery.gid));
+    io.Directory directory = io.Directory(computeGalleryDownloadPath(gallery.title, gallery.gid));
     if (!directory.existsSync()) {
       return;
     }
@@ -1182,7 +1186,12 @@ class GalleryDownloadService extends GetxController {
   }
 
   void _ensureDownloadDirExists() {
-    io.Directory(DownloadSetting.downloadPath.value).createSync(recursive: true);
+    try {
+      io.Directory(DownloadSetting.downloadPath.value).createSync(recursive: true);
+    } on Exception catch (e) {
+      Log.error(e);
+      Log.upload(e);
+    }
   }
 }
 

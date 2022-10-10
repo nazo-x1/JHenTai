@@ -62,7 +62,7 @@ class EHSpiderParser {
 
     switch (inlineType) {
       case 'Minimal':
-        return _compactGalleryPage2GalleryListAndPageInfo(response);
+        return _minimalGalleryPage2GalleryListAndPageInfo(response);
       case 'Minimal+':
         return _compactGalleryPage2GalleryListAndPageInfo(response);
       case 'Compact':
@@ -173,6 +173,21 @@ class EHSpiderParser {
       }
     }
     return tags;
+  }
+
+  static Map<String, dynamic> detailPage2RangeAndThumbnails(Response response) {
+    String html = response.data! as String;
+    Document document = parse(html);
+
+    /// eg. Showing 161 - 200 of 680 images
+    String desc = document.querySelector('.gtb > .gpc')!.text.replaceAll(',', '');
+    RegExpMatch match = RegExp(r'Showing (\d+) - (\d+) of').firstMatch(desc)!;
+
+    return {
+      'rangeIndexFrom': int.parse(match.group(1)!) - 1,
+      'rangeIndexTo': int.parse(match.group(2)!) - 1,
+      'thumbnails': detailPage2Thumbnails(response),
+    };
   }
 
   static List<GalleryThumbnail> detailPage2Thumbnails(Response response) {
@@ -521,6 +536,23 @@ class EHSpiderParser {
     return 'userNameOrPasswordMismatch'.tr;
   }
 
+  static List<dynamic> _minimalGalleryPage2GalleryListAndPageInfo(Response response) {
+    String html = response.data! as String;
+    Document document = parse(html);
+
+    List<Element> galleryListElements = document.querySelectorAll('.itg.gltm > tbody > tr');
+
+    /// remove table header and ad
+    galleryListElements.removeWhere((element) => element.children.length == 1 || element.querySelector('th') != null);
+    List<Gallery> gallerys = galleryListElements.map((e) => _parseMinimalGallery(e)).toList();
+
+    int pageCount = galleryPage2TotalPageCount(document);
+    int? prevPageIndex = galleryPage2PrevPageIndex(document);
+    int? nextPageIndex = galleryPage2NextPageIndex(document);
+
+    return [gallerys, pageCount, prevPageIndex, nextPageIndex];
+  }
+
   static List<dynamic> _compactGalleryPage2GalleryListAndPageInfo(Response response) {
     String html = response.data! as String;
     Document document = parse(html);
@@ -621,10 +653,49 @@ class EHSpiderParser {
     return tags.values.map((e) => TagData(namespace: e['ns'], key: e['tn'])).toList();
   }
 
+  static String galleryDeletedPage2Hint(Response response) {
+    String html = response.data! as String;
+    Document document = parse(html);
+
+    String hint = document.querySelector('.d > p')!.text;
+    if (hint.contains('removed')) {
+      return 'invisibleHints'.tr;
+    }
+
+    String copyRighter = hint.split(' ').last;
+    return 'copyRightHints'.tr + copyRighter;
+  }
+
   static String githubReleasePage2LatestVersion(Response response) {
     List releases = response.data!;
     Map latestRelease = releases[0];
     return latestRelease['tag_name'];
+  }
+
+  static Gallery _parseMinimalGallery(Element tr) {
+    GalleryImage? cover = _parseMinimalGalleryCover(tr);
+    String galleryUrl = tr.querySelector('.gl3m.glname > a')?.attributes['href'] ?? '';
+    List<String> parts = galleryUrl.split('/');
+
+    Gallery gallery = Gallery(
+      gid: int.parse(parts[4]),
+      token: parts[5],
+      title: tr.querySelector('.glink')?.text ?? '',
+      category: tr.querySelector('.gl1m.glcat > div')?.text ?? '',
+      cover: cover!,
+      pageCount: null,
+      rating: _parseGalleryRating(tr),
+      hasRated: tr.querySelector('.gl4m > .ir')!.attributes['class']!.split(' ').length > 1 ? true : false,
+      isFavorite: tr.querySelector('.gl2m > div:nth-child(2) > [id][style]') != null ? true : false,
+      favoriteTagIndex: _parseMinimalGalleryFavoriteTagIndex(tr),
+      favoriteTagName: tr.querySelector('.gl2m > div:nth-child(2) > [id][style]')?.attributes['title'],
+      galleryUrl: galleryUrl,
+      tags: LinkedHashMap<String, List<GalleryTag>>(),
+      uploader: tr.querySelector('.gl5m.glhide > div > a')?.text ?? '',
+      publishTime: tr.querySelector('.gl2m > div:nth-child(2)')?.text ?? '',
+    );
+
+    return gallery;
   }
 
   static Gallery _parseCompactGallery(Element tr) {
@@ -764,6 +835,33 @@ class EHSpiderParser {
           ));
     }
     return tags;
+  }
+
+  static GalleryImage? _parseMinimalGalleryCover(Element tr) {
+    Element? img = tr.querySelector('.gl2m > .glthumb > div > img');
+    if (img == null) {
+      return null;
+    }
+    String coverUrl = img.attributes['data-src'] ?? img.attributes['src'] ?? '';
+
+    /// eg: height:296px;width:250px
+    String? style = img.attributes['style'];
+    if (style == null) {
+      return null;
+    }
+    RegExp sizeReg = RegExp(r'(\d+)');
+    List<RegExpMatch> sizes = sizeReg.allMatches(style).toList();
+
+    String? height = sizes[0].group(0);
+    String? width = sizes[1].group(0);
+    if (height == null || width == null) {
+      return null;
+    }
+    return GalleryImage(
+      url: coverUrl,
+      height: double.parse(height),
+      width: double.parse(width),
+    );
   }
 
   static GalleryImage? _parseCompactGalleryCover(Element tr) {
@@ -916,6 +1014,15 @@ class EHSpiderParser {
     return initValue;
   }
 
+  static int? _parseMinimalGalleryFavoriteTagIndex(Element tr) {
+    String? style = tr.querySelector('.gl2m > div:nth-child(2) > [id][style]')?.attributes['style'];
+    if (style == null) {
+      return null;
+    }
+    final String color = RegExp(r'border-color:#(\w{3});').firstMatch(style)?.group(1) ?? '';
+    return ColorConsts.favoriteTagIndex[color]!;
+  }
+
   static int? _parseCompactGalleryFavoriteTagIndex(Element tr) {
     String? style = tr.querySelector('.gl2c > div:nth-child(2) > [id][style]')?.attributes['style'];
     if (style == null) {
@@ -976,7 +1083,7 @@ class EHSpiderParser {
             id: int.parse(element.querySelector('.c6')?.attributes['id']?.split('_')[1] ?? ''),
             username: element.querySelector('.c2 > .c3 > a')?.text,
             score: element.querySelector('.c2 > .c5.nosel > span')?.text ?? '',
-            content: element.querySelector('.c6')?.outerHtml ?? '',
+            content: element.querySelector('.c6')?.outerHtml.replaceAll('&amp;', '&') ?? '',
             time: _parsePostedLocalTime(element),
             lastEditTime: _parsePostedEditedTime(element),
             fromMe: element.querySelector('.c2 > .c4.nosel > a')?.text == 'Edit',

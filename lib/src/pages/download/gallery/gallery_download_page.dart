@@ -4,7 +4,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:jhentai/src/config/ui_config.dart';
-
+import 'package:jhentai/src/setting/style_setting.dart';
 import '../../../database/database.dart';
 import '../../../model/gallery_image.dart';
 import '../../../routes/routes.dart';
@@ -13,15 +13,18 @@ import '../../../utils/date_util.dart';
 import '../../../utils/route_util.dart';
 import '../../../widget/eh_gallery_category_tag.dart';
 import '../../../widget/eh_image.dart';
+import '../../../widget/fade_shrink_widget.dart';
 import '../../../widget/focus_widget.dart';
 import '../../layout/desktop/desktop_layout_page_logic.dart';
+import '../../layout/mobile_v2/notification/tap_menu_button_notification.dart';
 import '../download_base_page.dart';
 import 'gallery_download_page_logic.dart';
 import 'gallery_download_page_state.dart';
 
 class GalleryDownloadPage extends StatelessWidget {
-  GalleryDownloadPage({Key? key}) : super(key: key);
+  GalleryDownloadPage({Key? key, this.showMenuButton = false}) : super(key: key);
 
+  final bool showMenuButton;
   final GalleryDownloadPageLogic logic = Get.put<GalleryDownloadPageLogic>(GalleryDownloadPageLogic(), permanent: true);
   final GalleryDownloadPageState state = Get.find<GalleryDownloadPageLogic>().state;
 
@@ -41,6 +44,9 @@ class GalleryDownloadPage extends StatelessWidget {
   AppBar buildAppBar(BuildContext context) {
     return AppBar(
       centerTitle: true,
+      leading: StyleSetting.isInV2Layout
+          ? IconButton(icon: const Icon(FontAwesomeIcons.bars, size: 20), onPressed: () => TapMenuButtonNotification().dispatch(context))
+          : null,
       titleSpacing: 0,
       title: const EHDownloadPageSegmentControl(bodyType: DownloadPageBodyType.download),
       actions: [

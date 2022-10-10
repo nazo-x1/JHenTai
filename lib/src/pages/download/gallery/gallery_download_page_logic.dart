@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:jhentai/src/setting/read_setting.dart';
+import 'package:jhentai/src/utils/process_util.dart';
 import 'package:jhentai/src/widget/eh_alert_dialog.dart';
 
 import '../../../database/database.dart';
@@ -135,20 +137,24 @@ class GalleryDownloadPageLogic extends GetxController with GetTickerProviderStat
   }
 
   void goToReadPage(GalleryDownloadedData gallery) {
-    String storageKey = 'readIndexRecord::${gallery.gid}';
-    int readIndexRecord = storageService.read(storageKey) ?? 0;
+    if (ReadSetting.useThirdPartyViewer.isTrue && ReadSetting.thirdPartyViewerPath.value != null) {
+      openThirdPartyViewer(downloadService.computeGalleryDownloadPath(gallery.title, gallery.gid));
+    } else {
+      String storageKey = 'readIndexRecord::${gallery.gid}';
+      int readIndexRecord = storageService.read(storageKey) ?? 0;
 
-    toRoute(
-      Routes.read,
-      arguments: ReadPageInfo(
-        mode: ReadMode.downloaded,
-        gid: gallery.gid,
-        galleryUrl: gallery.galleryUrl,
-        initialIndex: readIndexRecord,
-        currentIndex: readIndexRecord,
-        readProgressRecordStorageKey:storageKey ,
-        pageCount: gallery.pageCount,
-      ),
-    );
+      toRoute(
+        Routes.read,
+        arguments: ReadPageInfo(
+          mode: ReadMode.downloaded,
+          gid: gallery.gid,
+          galleryUrl: gallery.galleryUrl,
+          initialIndex: readIndexRecord,
+          currentIndex: readIndexRecord,
+          readProgressRecordStorageKey: storageKey,
+          pageCount: gallery.pageCount,
+        ),
+      );
+    }
   }
 }

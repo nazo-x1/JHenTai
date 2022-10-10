@@ -8,15 +8,18 @@ import '../service/storage_service.dart';
 
 class SecuritySetting {
   static RxBool enableBlur = false.obs;
-  static RxBool enableFingerPrintLock = false.obs;
+  static RxBool enableBiometricLock = false.obs;
+  static RxBool enableBiometricLockOnResume = false.obs;
 
-  static bool supportFingerPrintLock = false;
+  static bool supportBiometricLock = false;
 
   static Future<void> init() async {
     if (GetPlatform.isDesktop) {
       return;
     }
-    supportFingerPrintLock = (await LocalAuthentication().getAvailableBiometrics()).contains(BiometricType.fingerprint);
+
+    List<BiometricType> types = await LocalAuthentication().getAvailableBiometrics();
+    supportBiometricLock = types.contains(BiometricType.fingerprint) || types.contains(BiometricType.face);
 
     Map<String, dynamic>? map = Get.find<StorageService>().read<Map<String, dynamic>>('securitySetting');
     if (map != null) {
@@ -47,10 +50,29 @@ class SecuritySetting {
     );
   }
 
-  static saveEnableFingerPrintLock(bool enableFingerPrintLock) {
-    Log.debug('saveEnableFingerPrintLock:$enableFingerPrintLock');
-    SecuritySetting.enableFingerPrintLock.value = enableFingerPrintLock;
+  static saveEnableBiometricLock(bool enableBiometricLock) {
+    Log.debug('saveEnableBiometricLock:$enableBiometricLock');
+    SecuritySetting.enableBiometricLock.value = enableBiometricLock;
     _save();
+  }
+
+  static saveEnableBiometricLockOnResume(bool enableBiometricLockOnResume) {
+    Log.debug('saveEnableBiometricLockOnResume:$enableBiometricLockOnResume');
+    SecuritySetting.enableBiometricLockOnResume.value = enableBiometricLockOnResume;
+    _save();
+
+    if (!GetPlatform.isAndroid) {
+      return;
+    }
+    if (enableBiometricLockOnResume) {
+      FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+    } else {
+      FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
+    }
+
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(systemStatusBarContrastEnforced: true),
+    );
   }
 
   static Future<void> _save() async {
@@ -60,12 +82,14 @@ class SecuritySetting {
   static Map<String, dynamic> _toMap() {
     return {
       'enableBlur': enableBlur.value,
-      'enableFingerPrintLock': enableFingerPrintLock.value,
+      'enableBiometricLock': enableBiometricLock.value,
+      'enableBiometricLockOnResume': enableBiometricLockOnResume.value,
     };
   }
 
   static _initFromMap(Map<String, dynamic> map) {
-    enableBlur.value = map['enableBlur'];
-    enableFingerPrintLock.value = map['enableFingerPrintLock'];
+    enableBlur.value = map['enableBlur'] ?? enableBlur.value;
+    enableBiometricLock.value = map['enableBiometricLock'] ?? enableBiometricLock.value;
+    enableBiometricLockOnResume.value = map['enableBiometricLockOnResume'] ?? enableBiometricLockOnResume.value;
   }
 }

@@ -454,12 +454,10 @@ packages:
   file_picker:
     dependency: "direct main"
     description:
-      path: "."
-      ref: HEAD
-      resolved-ref: f9133f6d5dbf33191fc9b58655aebfd15445045a
-      url: "https://github.com/ishangavidusha/flutter_file_picker"
-    source: git
-    version: "5.0.1"
+      name: file_picker
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "5.2.0+1"
   fixnum:
     dependency: transitive
     description:
@@ -741,13 +739,24 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.2.0"
+  image_gallery_saver:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: HEAD
+      resolved-ref: "6676c04a858761736dc6b166ef14887578c6218f"
+      url: "https://github.com/hui-z/image_gallery_saver"
+    source: git
+    version: "1.7.1"
   image_size_getter:
     dependency: "direct main"
     description:
-      name: image_size_getter
-      url: "https://pub.flutter-io.cn"
-    source: hosted
-    version: "2.1.1"
+      path: library
+      ref: HEAD
+      resolved-ref: be6833aa5c55ea5f4a8737cc97305ddc0a5c0be8
+      url: "https://github.com/jiangtian616/dart_image_size_getter"
+    source: git
+    version: "2.1.2"
   intl:
     dependency: "direct main"
     description:

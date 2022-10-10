@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:image_size_getter/file_input.dart';
 import 'package:image_size_getter/image_size_getter.dart';
 import 'package:jhentai/src/service/gallery_download_service.dart';
+import 'package:jhentai/src/utils/file_util.dart';
 import 'package:path/path.dart';
 
 import '../model/gallery_image.dart';
@@ -29,6 +30,8 @@ class LocalGallery {
 
 /// Load galleries in download directory but is not downloaded by JHenTai
 class LocalGalleryService extends GetxController {
+  static const String galleryCountChangedId = 'galleryCountChangedId';
+
   List<LocalGallery> allGallerys = [];
   Map<String, List<LocalGallery>> path2Gallerys = {};
   Map<String, List<String>> path2Directories = {};
@@ -57,6 +60,8 @@ class LocalGalleryService extends GetxController {
 
     allGallerys.removeWhere((g) => g.title == gallery.title);
     path2Gallerys[parentPath]?.removeWhere((g) => g.title == gallery.title);
+
+    update([galleryCountChangedId]);
   }
 
   Future<int> refreshLocalGallerys() async {
@@ -133,10 +138,7 @@ class LocalGalleryService extends GetxController {
         continue;
       }
 
-      String ext = extension(image.path);
-      if (ext == '.jpg' || ext == '.png' || ext == '.gif' || ext == '.jpeg') {
-        return true;
-      }
+      return FileUtil.isImageExtension(image.path);
     }
 
     return false;
@@ -170,7 +172,7 @@ class LocalGalleryService extends GetxController {
     List<io.File> imageFiles = galleryDir
         .listSync()
         .whereType<io.File>()
-        .where((image) => RegExp('.jpg|.png|.gif|.jpeg').firstMatch(extension(image.path)) != null)
+        .where((image) => FileUtil.isImageExtension(image.path))
         .toList()
       ..sort((a, b) => basename(a.path).compareTo(basename(b.path)));
 
@@ -180,7 +182,11 @@ class LocalGalleryService extends GetxController {
       try {
         size = ImageSizeGetter.getSize(FileInput(file));
       } on Exception catch (e) {
-        Log.error("Parse local images failed!", e);
+        Log.error('Parse local images failed! Path: ${file.path}', e);
+        Log.upload(e, extraInfos: {'path': file.path, 'stat': file.statSync()});
+        continue;
+      } on Error catch (e) {
+        Log.error('Parse local images failed! Path: ${file.path}', e);
         Log.upload(e, extraInfos: {'path': file.path, 'stat': file.statSync()});
         continue;
       }

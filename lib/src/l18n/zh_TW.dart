@@ -98,6 +98,7 @@ class zh_TW {
       'getGalleryDetailFailed': '獲取畫廊詳情失敗',
       'invisible2User': '此畫廊對您不可見',
       'invisibleHints': '畫廊已被刪除或對您進行了限制',
+      'copyRightHints': '該畫廊因爲版權已被刪除，版權作者：',
       'refreshGalleryDetailsFailed': '重整畫廊詳情失敗',
       'failToGetThumbnails': "獲取畫廊快取圖數據失敗",
       'favoriteGalleryFailed': "收藏畫廊錯誤",
@@ -161,6 +162,8 @@ class zh_TW {
       'toPrev': '上一頁',
       'back': '返回',
       'toggleMenu': '展示/隱藏選單',
+      'share': '分享',
+      'save': '保存至圖庫',
 
       /// setting page
       'account': '帳戶',
@@ -227,6 +230,7 @@ class zh_TW {
       'listWithTags': '卡片',
       'waterfallFlowWithImageOnly': '瀑布流(僅圖片)',
       'waterfallFlowWithImageAndInfo': '瀑布流',
+      'moveCover2RightSide': '移動封面圖至右側',
       'coverStyle': '封面圖片樣式',
       'cover': '覆蓋',
       'adaptive': '自適應',
@@ -262,6 +266,7 @@ class zh_TW {
       'clearImagesCache': '清除圖片快取',
       'longPress2Clear': '長按清除',
       'checkUpdateAfterLaunchingApp': '啟動應用時檢查更新',
+      'checkClipboard': '檢測剪切板中的畫廊鏈接',
       'clearPageCache': '清除頁面快取',
       'clearSuccess': '清除成功',
 
@@ -269,13 +274,17 @@ class zh_TW {
       'hostDataSource': '預設情況下不用改動。\n數據來源: https://dns.google/',
 
       /// security setting page
-      'enableFingerPrintLock': '開啟指紋鎖',
+      'enableBiometricLock': '開啓生物認證（啓動時）',
+      'enableBiometricLockOnResume': '開啓生物認證（切換至前台時）',
+      'enableBiometricLockOnResumeHints': '需要切換至後台超過3s',
       'enableBlurBackgroundApp': '在任務欄中模糊應用頁面',
 
       /// read setting page
       'enableImmersiveMode': '開啟沉浸模式',
       'enableImmersiveHint': '隱藏系統狀態欄和底部導航列',
       'readDirection': '閱讀方向',
+      'useThirdPartyViewer': '使用第三方閱讀器',
+      'thirdPartyViewerPath': '第三方閱讀器路徑（可執行文件）',
       'showThumbnails': '顯示快取圖',
       'showStatusInfo': '底部顯示狀態信息',
       'autoModeInterval': '自動模式翻頁時間',
@@ -350,7 +359,7 @@ class zh_TW {
       'watched': '關注',
       'history': '歷史',
       'keyword': '關鍵詞',
-      'backspace2DeleteTag':'雙擊退格來刪除標簽',
+      'backspace2DeleteTag': '雙擊退格來刪除標簽',
       'searchGalleryName': '搜尋畫廊名字',
       'searchGalleryTags': '搜尋畫廊標籤',
       'searchGalleryDescription': '搜尋畫廊描述',

@@ -13,6 +13,7 @@ import 'package:jhentai/src/pages/read/layout/horizontal_list/horizontal_list_la
 import 'package:jhentai/src/pages/read/layout/horizontal_page/horizontal_page_layout_logic.dart';
 import 'package:jhentai/src/pages/read/layout/vertical_list/vertical_list_layout_logic.dart';
 import 'package:jhentai/src/pages/read/read_page_state.dart';
+import 'package:jhentai/src/service/volume_service.dart';
 import 'package:retry/retry.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:throttling/throttling.dart';
@@ -23,7 +24,6 @@ import '../../network/eh_request.dart';
 import '../../utils/check_util.dart';
 import '../../service/storage_service.dart';
 import '../../setting/read_setting.dart';
-import '../../setting/site_setting.dart';
 import '../../utils/eh_spider_parser.dart';
 import '../../utils/log.dart';
 import '../../widget/auto_mode_interval_dialog.dart';
@@ -55,6 +55,7 @@ class ReadPageLogic extends GetxController {
               : Get.find<HorizontalPageLayoutLogic>();
 
   final StorageService storageService = Get.find();
+  final VolumeService volumeService = Get.find();
 
   late Timer refreshCurrentTimeAndBatteryLevelTimer;
   late Worker toggleCurrentImmersiveModeLister;
@@ -65,10 +66,20 @@ class ReadPageLogic extends GetxController {
   void onReady() {
     super.onReady();
 
+    /// Turn page by volume keys. The reason for not use [KeyboardListener]: https://github.com/flutter/flutter/issues/71144
+    volumeService.listen((VolumeEventType type) {
+      if (type == VolumeEventType.volumeUp) {
+        layoutLogic.toPrev();
+      } else if (type == VolumeEventType.volumeDown) {
+        layoutLogic.toNext();
+      }
+    });
+    volumeService.setInterceptVolumeEvent(true);
+
     toggleCurrentImmersiveMode();
 
     /// Listen to change
-    toggleCurrentImmersiveModeLister= ever(ReadSetting.enableImmersiveMode, (_) => toggleCurrentImmersiveMode());
+    toggleCurrentImmersiveModeLister = ever(ReadSetting.enableImmersiveMode, (_) => toggleCurrentImmersiveMode());
 
     if (!GetPlatform.isDesktop) {
       state.battery.batteryLevel.then((value) => state.batteryLevel = value);
@@ -96,6 +107,9 @@ class ReadPageLogic extends GetxController {
     state.focusNode.dispose();
     refreshCurrentTimeAndBatteryLevelTimer.cancel();
     toggleCurrentImmersiveModeLister.dispose();
+
+    volumeService.cancelListen();
+    volumeService.setInterceptVolumeEvent(false);
 
     restoreSystemBar();
 
@@ -125,13 +139,13 @@ class ReadPageLogic extends GetxController {
     Log.verbose('Begin to load Thumbnail $index', false);
     update([parseImageHrefsStateId]);
 
-    List<GalleryThumbnail> newThumbnails;
+    Map<String, dynamic> rangeAndThumbnails;
     try {
-      newThumbnails = await retry(
+      rangeAndThumbnails = await retry(
         () => EHRequest.requestDetailPage(
           galleryUrl: state.readPageInfo.galleryUrl!,
           thumbnailsPageIndex: index ~/ state.thumbnailsCountPerPage,
-          parser: EHSpiderParser.detailPage2Thumbnails,
+          parser: EHSpiderParser.detailPage2RangeAndThumbnails,
         ),
         maxAttempts: 3,
         retryIf: (e) => e is DioError && e.error is! EHException,
@@ -148,37 +162,24 @@ class ReadPageLogic extends GetxController {
       return;
     }
 
+    int rangeFrom = rangeAndThumbnails['rangeIndexFrom'];
+    int rangeTo = rangeAndThumbnails['rangeIndexTo'];
+    List<GalleryThumbnail> newThumbnails = rangeAndThumbnails['thumbnails'];
+
     /// some gallery's [thumbnailsCountPerPage] is not equal to default setting, we need to compute and update it.
     /// For example, default setting is 40, but some gallerys' thumbnails has only high quality thumbnails, which results in 20.
     state.thumbnailsCountPerPage = (newThumbnails.length / 20).ceil() * 20;
-    int from = index ~/ state.thumbnailsCountPerPage * state.thumbnailsCountPerPage;
 
-    CheckUtil.build(
-      () => from + newThumbnails.length <= state.thumbnails.length,
-      errorMsg: "Out of index of imageHrefs!",
-    ).withUploadParam({
-      'index': index,
-      'pageCount': state.readPageInfo.pageCount,
-      'imageHrefsLength': state.thumbnails.length,
-      'from': from,
-      'thumbnailsLength': newThumbnails.length,
-    }).onFailed(() {
-      newThumbnails = newThumbnails.sublist(0, state.thumbnails.length - from);
-    }).check(throwExceptionWhenFailed: false);
-
-    for (int i = 0; i < newThumbnails.length; i++) {
-      state.thumbnails[from + i] = newThumbnails[i];
+    state.parseImageHrefsStates[index] = LoadingState.idle;
+    for (int i = rangeFrom; i <= rangeTo; i++) {
+      state.thumbnails[i] = newThumbnails[i - rangeFrom];
+      update(['$onlineImageId::$i']);
     }
 
     /// if gallery's [thumbnailsCountPerPage] is not equal to default setting, we probably can't get target thumbnails this turn
     /// because the [thumbnailsPageIndex] we computed before is wrong, so we need to parse again
     if (state.thumbnails[index] == null) {
       return _parseImageHref(index);
-    }
-
-    state.parseImageHrefsStates[index] = LoadingState.idle;
-    for (int i = 0; i < newThumbnails.length; i++) {
-      update(['$onlineImageId::${index + i}']);
     }
   }
 
@@ -246,7 +247,7 @@ class ReadPageLogic extends GetxController {
     update([topMenuId, bottomMenuId, rightBottomInfoId]);
   }
 
-  Future<void> toggleAutoMode() async{
+  Future<void> toggleAutoMode() async {
     if (state.autoMode) {
       return closeAutoMode();
     }
