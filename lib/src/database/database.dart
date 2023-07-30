@@ -18,12 +18,19 @@ import '../service/storage_service.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(include: {'gallery_downloaded.drift', 'archive_downloaded.drift', 'tag.drift', 'gallery_history.drift'})
+@DriftDatabase(include: {
+  'gallery_downloaded.drift',
+  'archive_downloaded.drift',
+  'tag.drift',
+  'gallery_history.drift',
+  'tag_browse_progress.drift',
+  'super_resolution_info.drift'
+})
 class AppDb extends _$AppDb {
   AppDb() : super(_openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration {
@@ -44,6 +51,12 @@ class AppDb extends _$AppDb {
           if (from < 4) {
             await m.addColumn(galleryDownloaded, galleryDownloaded.priority);
           }
+          if (from < 11) {
+            await m.addColumn(galleryDownloaded, galleryDownloaded.sortOrder);
+            await m.addColumn(galleryGroup, galleryGroup.sortOrder);
+            await m.addColumn(archiveDownloaded, archiveDownloaded.sortOrder);
+            await m.addColumn(archiveGroup, archiveGroup.sortOrder);
+          }
           if (from < 5) {
             await m.addColumn(galleryDownloaded, galleryDownloaded.groupName);
             await m.addColumn(archiveDownloaded, archiveDownloaded.groupName);
@@ -62,6 +75,15 @@ class AppDb extends _$AppDb {
           if (from < 9) {
             await _updateConfigFileLocation();
           }
+          if (from < 10) {
+            await _deleteImageSizeColumn(m);
+          }
+          if (from < 12) {
+            await m.createTable(tagBrowseProgress);
+          }
+          if (from < 13) {
+            await m.createTable(superResolutionInfo);
+          }
         } on Exception catch (e) {
           Log.error(e);
           Log.upload(e, extraInfos: {'from': from, 'to': to});
@@ -77,7 +99,7 @@ class AppDb extends _$AppDb {
 
       await appDb.transaction(() async {
         for (ArchiveDownloadedData a in archives) {
-          await appDb.updateArchive(a.archiveStatusIndex + 1, a.downloadPageUrl, a.downloadUrl, a.groupName, a.gid, a.isOriginal);
+          await appDb.updateArchive(a.archiveStatusIndex + 1, a.downloadPageUrl, a.downloadUrl, a.sortOrder, a.groupName, a.gid, a.isOriginal);
         }
       });
     } on Exception catch (e) {
@@ -136,7 +158,12 @@ class AppDb extends _$AppDb {
 
   /// copy files
   Future<void> _updateConfigFileLocation() async {
-    await PathSetting.appSupportDir.copy(PathSetting.getVisibleDir().path);
+    await PathSetting.appSupportDir?.copy(PathSetting.getVisibleDir().path);
+  }
+
+  Future<void> _deleteImageSizeColumn(Migrator m) async {
+    await m.alterTable(TableMigration(archiveDownloaded));
+    await m.alterTable(TableMigration(image));
   }
 }
 

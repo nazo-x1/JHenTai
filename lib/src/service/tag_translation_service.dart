@@ -8,6 +8,7 @@ import 'package:jhentai/src/model/gallery_detail.dart';
 import 'package:jhentai/src/network/eh_request.dart';
 import 'package:jhentai/src/service/storage_service.dart';
 import 'package:jhentai/src/setting/path_setting.dart';
+import 'package:jhentai/src/setting/preference_setting.dart';
 import 'package:jhentai/src/widget/loading_state_indicator.dart';
 import 'package:path/path.dart';
 import 'package:retry/retry.dart';
@@ -15,7 +16,6 @@ import 'package:retry/retry.dart';
 import '../database/database.dart';
 import '../model/gallery.dart';
 import '../model/gallery_tag.dart';
-import '../setting/style_setting.dart';
 import '../utils/log.dart';
 
 class TagTranslationService extends GetxService {
@@ -28,6 +28,8 @@ class TagTranslationService extends GetxService {
   RxnString timeStamp = RxnString(null);
   RxString downloadProgress = RxString('0 MB');
 
+  bool get isReady => PreferenceSetting.enableTagZHTranslation.isTrue && (loadingState.value == LoadingState.success || timeStamp.value != null);
+
   static void init() {
     Get.put(TagTranslationService());
     Log.debug('init TagTranslationService success', false);
@@ -37,23 +39,57 @@ class TagTranslationService extends GetxService {
   void onInit() {
     loadingState.value = LoadingState.values[storageService.read('TagTranslationServiceLoadingState') ?? 0];
     timeStamp.value = storageService.read('TagTranslationServiceTimestamp');
+    if (isReady) {
+      refresh();
+    }
     super.onInit();
   }
 
   Future<void> refresh() async {
-    if (StyleSetting.enableTagZHTranslation.isFalse) {
+    if (PreferenceSetting.enableTagZHTranslation.isFalse) {
       return;
     }
-
     if (loadingState.value == LoadingState.loading) {
       return;
     }
 
+    Log.info('Refresh Tag translation data');
+
     loadingState.value = LoadingState.loading;
     downloadProgress.value = '0 MB';
 
-    List dataList = await _getDataList();
-    if (dataList.isEmpty) {
+    /// download translation metadata
+    try {
+      await retry(
+        () => EHRequest.download(
+          url: downloadUrl,
+          path: savePath,
+          receiveTimeout: 3 * 60 * 1000,
+          onReceiveProgress: (count, total) => downloadProgress.value = (count / 1024 / 1024).toStringAsFixed(2) + ' MB',
+        ),
+        maxAttempts: 5,
+        onRetry: (error) => Log.warning('Download tag translation data failed, retry.'),
+      );
+    } on DioError catch (e) {
+      Log.error('Download tag translation data failed after 5 times', e.message);
+      loadingState.value = LoadingState.error;
+      return;
+    }
+
+    Log.info('Tag translation data downloaded');
+
+    /// format
+    String json = io.File(savePath).readAsStringSync();
+    Map dataMap = jsonDecode(json);
+    Map head = dataMap['head'] as Map;
+    Map committer = head['committer'] as Map;
+    String newTimeStamp = committer['when'] as String;
+    List dataList = dataMap['data'] as List;
+
+    if (newTimeStamp == timeStamp.value) {
+      Log.info('Tag translation data is up to date, timestamp: $timeStamp');
+      loadingState.value = LoadingState.success;
+      io.File(savePath).delete();
       return;
     }
 
@@ -79,20 +115,34 @@ class TagTranslationService extends GetxService {
       });
     }
 
-    await _clear();
-    await _save(tagList);
+    /// save
+    timeStamp.value = null;
+    await appDb.deleteAllTags();
+    await appDb.transaction(() async {
+      for (TagData tag in tagList) {
+        await appDb.insertTag(
+          tag.namespace,
+          tag.key,
+          tag.translatedNamespace,
+          tag.tagName,
+          tag.fullTagName,
+          tag.intro,
+          tag.links,
+        );
+      }
+    });
+    timeStamp.value = newTimeStamp;
 
     storageService.write('TagTranslationServiceLoadingState', LoadingState.success.index);
     storageService.write('TagTranslationServiceTimestamp', timeStamp.value);
 
     loadingState.value = LoadingState.success;
-    Log.info('Update tagTranslation database success', false);
-
     io.File(savePath).delete();
+    Log.info('Update tag translation database success, timestamp: $timeStamp');
   }
 
   Future<void> translateGalleryTagsIfNeeded(List<Gallery> gallerys) async {
-    if (StyleSetting.enableTagZHTranslation.isTrue && loadingState.value == LoadingState.success) {
+    if (isReady) {
       Future.wait(gallerys.map((gallery) {
         return translateTagMap(gallery.tags);
       }).toList());
@@ -100,7 +150,7 @@ class TagTranslationService extends GetxService {
   }
 
   Future<void> translateGalleryDetailsTagsIfNeeded(List<GalleryDetail> galleryDetails) async {
-    if (StyleSetting.enableTagZHTranslation.isTrue && loadingState.value == LoadingState.success) {
+    if (isReady) {
       Future.wait(galleryDetails.map((galleryDetail) {
         return translateTagMap(galleryDetail.fullTags);
       }).toList());
@@ -108,7 +158,7 @@ class TagTranslationService extends GetxService {
   }
 
   Future<void> translateGalleryDetailTagsIfNeeded(GalleryDetail galleryDetail) async {
-    if (StyleSetting.enableTagZHTranslation.isTrue && loadingState.value == LoadingState.success) {
+    if (isReady) {
       await translateTagMap(galleryDetail.fullTags);
     }
   }
@@ -135,57 +185,5 @@ class TagTranslationService extends GetxService {
     });
 
     await Future.wait(futures);
-  }
-
-  Future<List> _getDataList() async {
-    try {
-      await retry(
-        () => EHRequest.download(
-          url: downloadUrl,
-          path: savePath,
-          receiveTimeout: 30000,
-          onReceiveProgress: (count, total) => downloadProgress.value = (count / 1024 / 1024).toStringAsFixed(2) + ' MB',
-        ),
-        maxAttempts: 5,
-        onRetry: (error) => Log.warning('Download tag translation data failed, retry.'),
-      );
-    } on DioError catch (e) {
-      Log.error('Download tag translation data failed after 3 times', e.message);
-      loadingState.value = LoadingState.error;
-      return [];
-    }
-
-    String json = io.File(savePath).readAsStringSync();
-    Map dataMap = jsonDecode(json);
-
-    Map head = dataMap['head'] as Map;
-    Map committer = head['committer'] as Map;
-    timeStamp.value = committer['when'] as String;
-
-    List dataList = dataMap['data'] as List;
-
-    Log.info('Tag translation data downloaded, length: ${dataList.length}');
-
-    return dataList;
-  }
-
-  Future<void> _save(List<TagData> list) async {
-    return appDb.transaction(() async {
-      for (TagData tag in list) {
-        await appDb.insertTag(
-          tag.namespace,
-          tag.key,
-          tag.translatedNamespace,
-          tag.tagName,
-          tag.fullTagName,
-          tag.intro,
-          tag.links,
-        );
-      }
-    });
-  }
-
-  Future<int> _clear() async {
-    return appDb.deleteAllTags();
   }
 }

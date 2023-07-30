@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:jhentai/src/config/ui_config.dart';
 
 import '../consts/color_consts.dart';
 import '../model/gallery_tag.dart';
@@ -10,6 +11,7 @@ class EHTag extends StatefulWidget {
   final GalleryTag tag;
   final bool addNameSpaceColor;
   final bool enableTapping;
+  final bool forceNewRoute;
 
   final int? gid;
   final String? token;
@@ -20,6 +22,7 @@ class EHTag extends StatefulWidget {
     required this.tag,
     this.addNameSpaceColor = false,
     this.enableTapping = false,
+    this.forceNewRoute = false,
     this.gid,
     this.token,
     this.apikey,
@@ -39,7 +42,7 @@ class _EHTagState extends State<EHTag> {
         color: widget.tag.backgroundColor ??
             (widget.addNameSpaceColor
                 ? ColorConsts.zhTagNameSpaceColor[widget.tag.tagData.key] ?? ColorConsts.tagNameSpaceColor[widget.tag.tagData.key]!
-                : Get.theme.colorScheme.secondaryContainer),
+                : UIConfig.ehTagBackGroundColor(context)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Align(
@@ -47,13 +50,18 @@ class _EHTagState extends State<EHTag> {
         widthFactor: 1.0,
         alignment: Alignment.center,
         child: Text(
-          widget.tag.tagData.tagName ?? widget.tag.tagData.key,
+          (widget.tag.tagData.tagName ?? widget.tag.tagData.key) +
+              (widget.tag.voteStatus == EHTagVoteStatus.up
+                  ? '↑'
+                  : widget.tag.voteStatus == EHTagVoteStatus.down
+                      ? '↓'
+                      : ''),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 12,
             height: 1,
-            color: widget.tag.color ?? (widget.addNameSpaceColor ? Colors.black : Get.theme.colorScheme.onSecondaryContainer),
+            color: widget.tag.color ?? (widget.addNameSpaceColor ? ColorConsts.tagNameSpaceTextColor : UIConfig.ehTagTextColor(context)),
           ),
         ),
       ),
@@ -77,7 +85,7 @@ class _EHTagState extends State<EHTag> {
   }
 
   void _searchTag() {
-    newSearch('${widget.tag.tagData.namespace}:"${widget.tag.tagData.key}\$"');
+    newSearch('${widget.tag.tagData.namespace}:"${widget.tag.tagData.key}\$"', widget.forceNewRoute);
   }
 
   void _showDialog() {

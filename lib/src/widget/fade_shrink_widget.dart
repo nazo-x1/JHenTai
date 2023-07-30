@@ -3,15 +3,20 @@ import 'package:simple_animations/animation_controller_extension/animation_contr
 import 'package:simple_animations/animation_mixin/animation_mixin.dart';
 
 class FadeShrinkWidget extends StatefulWidget {
-  final bool show;
   final Widget child;
+
+  final bool show;
   final bool animateWhenInitialization;
   final Duration duration;
 
+  final bool enableOpacityTransition;
   final double opacityFrom;
   final double opacityTo;
+
+  final bool enableSizeTransition;
   final double sizeFrom;
   final double sizeTo;
+  final Axis sizeAxis;
 
   final VoidCallback? afterDisappear;
 
@@ -21,10 +26,13 @@ class FadeShrinkWidget extends StatefulWidget {
     required this.child,
     this.animateWhenInitialization = false,
     this.duration = const Duration(milliseconds: 150),
+    this.enableOpacityTransition = true,
+    this.enableSizeTransition = true,
     this.opacityFrom = 0,
     this.opacityTo = 1,
     this.sizeFrom = 0,
     this.sizeTo = 1,
+    this.sizeAxis = Axis.vertical,
     this.afterDisappear,
   }) : super(key: key);
 
@@ -45,8 +53,14 @@ class _FadeShrinkWidgetState extends State<FadeShrinkWidget> with AnimationMixin
     super.initState();
 
     show = widget.show;
-    if (show) {
-      controller.forward(from: widget.animateWhenInitialization ? 0 : 1);
+    if (!show) {
+      return;
+    }
+
+    if (widget.animateWhenInitialization) {
+      controller.play(duration: widget.duration);
+    } else {
+      controller.forward(from: 1);
     }
   }
 
@@ -70,12 +84,23 @@ class _FadeShrinkWidgetState extends State<FadeShrinkWidget> with AnimationMixin
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: fadeAnimation,
-      child: SizeTransition(
+    Widget child = widget.child;
+
+    if (widget.enableOpacityTransition) {
+      child = FadeTransition(
+        opacity: fadeAnimation,
+        child: child,
+      );
+    }
+
+    if (widget.enableSizeTransition) {
+      child = SizeTransition(
         sizeFactor: sizeAnimation,
-        child: widget.child,
-      ),
-    );
+        axis: widget.sizeAxis,
+        child: child,
+      );
+    }
+
+    return child;
   }
 }

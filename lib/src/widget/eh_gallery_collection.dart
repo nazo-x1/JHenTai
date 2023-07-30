@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_list_view/flutter_list_view.dart';
-import 'package:get/get.dart';
+import 'package:jhentai/src/config/ui_config.dart';
 import 'package:jhentai/src/widget/loading_state_indicator.dart';
 import 'package:waterfall_flow/waterfall_flow.dart';
 
@@ -15,74 +15,51 @@ Widget EHGalleryCollection({
   Key? key,
   required BuildContext context,
   required List<Gallery> gallerys,
+  required ListMode listMode,
   required LoadingState loadingState,
   required CardCallback handleTapCard,
   CardCallback? handleLongPressCard,
   CardCallback? handleSecondaryTapCard,
   VoidCallback? handleLoadMore,
+  ValueChanged<Gallery>? onScrolled,
 }) {
   Widget _buildGalleryList() {
     /// use FlutterSliverList to [keepPosition] when insert items at top
     return FlutterSliverList(
       key: key,
+      controller: FlutterSliverListController()
+        ..onPaintItemPositionsCallback = (_, List<FlutterListViewItemPosition> positions) {
+          if (positions.isNotEmpty) {
+            onScrolled?.call(gallerys[positions.last.index]);
+          }
+        },
       delegate: FlutterListViewDelegate(
         (_, int index) {
           if (index == gallerys.length - 1 && loadingState == LoadingState.idle && handleLoadMore != null) {
-            /// 1. shouldn't call directly, because SliverList is building, if we call [setState] here will cause a exception
-            /// that hints circular build.
-            /// 2. when callback is called, the SliverGrid's state will call [setState], it'll rebuild all sliver child by index, it means
-            /// that this callback will be added again and again! so add a condition to check loadingState so that make sure
-            /// the callback is added only once.
             SchedulerBinding.instance.addPostFrameCallback((_) => handleLoadMore());
           }
           return Container(
-            decoration: StyleSetting.listMode.value == ListMode.flat
+            decoration: listMode == ListMode.flat || listMode == ListMode.flatWithoutTags
                 ? BoxDecoration(
-                    color: Theme.of(context).colorScheme.background,
+                    color: UIConfig.backGroundColor(context),
                     border: Border(bottom: BorderSide(width: 0.5, color: Theme.of(context).dividerColor)),
                   )
                 : null,
             padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
             child: EHGalleryListCard(
               gallery: gallerys[index],
+              listMode: listMode,
               handleTapCard: (gallery) => handleTapCard(gallery),
               handleLongPressCard: handleLongPressCard == null ? null : (gallery) => handleLongPressCard(gallery),
               handleSecondaryTapCard: handleSecondaryTapCard == null ? null : (gallery) => handleSecondaryTapCard(gallery),
-              withTags: StyleSetting.listMode.value == ListMode.listWithTags || StyleSetting.listMode.value == ListMode.flat,
+              withTags: listMode == ListMode.listWithTags || listMode == ListMode.flat,
             ),
           );
         },
         childCount: gallerys.length,
         keepPosition: true,
         onItemKey: (index) => gallerys[index].galleryUrl,
-        preferItemHeight: StyleSetting.listMode.value == ListMode.listWithTags ? 200 : 125,
-      ),
-    );
-  }
-
-  Widget _buildGalleryListWithNative() {
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (_, index) {
-          if (index == gallerys.length - 1 && loadingState == LoadingState.idle && handleLoadMore != null) {
-            /// 1. shouldn't call directly, because SliverList is building, if we call [setState] here will cause a exception
-            /// that hints circular build.
-            /// 2. when callback is called, the SliverGrid's state will call [setState], it'll rebuild all sliver child by index, it means
-            /// that this callback will be added again and again! so add a condition to check loadingState so that make sure
-            /// the callback is added only once.
-            SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
-              handleLoadMore();
-            });
-          }
-          return EHGalleryListCard(
-            gallery: gallerys[index],
-            handleTapCard: (gallery) => handleTapCard(gallery),
-            withTags: StyleSetting.listMode.value == ListMode.listWithTags,
-            handleLongPressCard: handleLongPressCard == null ? null : (gallery) => handleLongPressCard(gallery),
-            handleSecondaryTapCard: handleSecondaryTapCard == null ? null : (gallery) => handleSecondaryTapCard(gallery),
-          ).marginOnly(top: 5, bottom: 5, left: 10, right: 10);
-        },
-        childCount: gallerys.length,
+        preferItemHeight: listMode == ListMode.listWithTags ? 200 : 125,
       ),
     );
   }
@@ -90,27 +67,40 @@ Widget EHGalleryCollection({
   Widget _buildGalleryWaterfallFlow() {
     return SliverPadding(
       key: key,
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       sliver: SliverWaterfallFlow(
-        gridDelegate: const SliverWaterfallFlowDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisSpacing: 4,
-          crossAxisSpacing: 4,
-        ),
+        gridDelegate: StyleSetting.crossAxisCountInWaterFallFlow.value == null
+            ? SliverWaterfallFlowDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: listMode == ListMode.waterfallFlowBig ? 225 : 150,
+                mainAxisSpacing: listMode == ListMode.waterfallFlowBig ? 10 : 5,
+                crossAxisSpacing: 5,
+                collectGarbage: (List<int> garbages) {
+                  if (gallerys.isNotEmpty) {
+                    onScrolled?.call(gallerys[garbages.last]);
+                  }
+                },
+              )
+            : SliverWaterfallFlowDelegateWithFixedCrossAxisCount(
+                crossAxisCount: StyleSetting.crossAxisCountInWaterFallFlow.value!,
+                mainAxisSpacing: listMode == ListMode.waterfallFlowBig ? 10 : 5,
+                crossAxisSpacing: 5,
+                collectGarbage: (List<int> garbages) {
+                  if (gallerys.isNotEmpty) {
+                    onScrolled?.call(gallerys[garbages.last]);
+                  }
+                },
+              ),
         delegate: SliverChildBuilderDelegate(
           (BuildContext context, int index) {
             if (index == gallerys.length - 1 && loadingState == LoadingState.idle && handleLoadMore != null) {
-              /// 1. shouldn't call directly, because SliverList is building, if we call [setState] here will cause a exception
-              /// that hints circular build.
-              /// 2. when callback is called, the SliverGrid's state will call [setState], it'll rebuild all sliver child by index, it means
-              /// that this callback will be added again and again! so add a condition to check loadingState so that make sure
-              /// the callback is added only once.
-              SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
-                handleLoadMore();
-              });
+              SchedulerBinding.instance.addPostFrameCallback((_) => handleLoadMore());
             }
 
-            return EHGalleryWaterFlowCard(gallery: gallerys[index], handleTapCard: handleTapCard);
+            return EHGalleryWaterFlowCard(
+              gallery: gallerys[index],
+              listMode: listMode,
+              handleTapCard: handleTapCard,
+            );
           },
           childCount: gallerys.length,
         ),
@@ -118,13 +108,12 @@ Widget EHGalleryCollection({
     );
   }
 
-  return Obx(() {
-    if (StyleSetting.listMode.value == ListMode.flat ||
-        StyleSetting.listMode.value == ListMode.listWithoutTags ||
-        StyleSetting.listMode.value == ListMode.listWithTags) {
-      return _buildGalleryList();
-    }
+  if (listMode == ListMode.flat ||
+      listMode == ListMode.flatWithoutTags ||
+      listMode == ListMode.listWithoutTags ||
+      listMode == ListMode.listWithTags) {
+    return _buildGalleryList();
+  }
 
-    return _buildGalleryWaterfallFlow();
-  });
+  return _buildGalleryWaterfallFlow();
 }

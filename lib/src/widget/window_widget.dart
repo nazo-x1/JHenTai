@@ -1,8 +1,9 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:jhentai/src/service/storage_service.dart';
-import 'package:jhentai/src/utils/log.dart';
+import 'package:jhentai/src/config/ui_config.dart';
+
+import '../service/windows_service.dart';
 
 class WindowWidget extends StatefulWidget {
   final Widget child;
@@ -14,13 +15,7 @@ class WindowWidget extends StatefulWidget {
 }
 
 class _WindowWidgetState extends State<WindowWidget> {
-  bool _isMaximized = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _isMaximized = Get.find<StorageService>().read('windowMaximize') ?? false;
-  }
+  final WindowService windowService = Get.find<WindowService>();
 
   @override
   Widget build(BuildContext context) {
@@ -32,19 +27,21 @@ class _WindowWidgetState extends State<WindowWidget> {
 
     return WindowBorder(
       width: 0.5,
-      color: Colors.black,
+      color: UIConfig.windowBorderColor,
       child: Column(
         children: [
           ColoredBox(
-            color: Get.theme.colorScheme.background,
+            color: UIConfig.backGroundColor(context),
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
-              onPanStart: (_) => appWindow.startDragging(),
+              onPanStart: (_) {
+                appWindow.startDragging();
+              },
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   MinimizeWindowButton(colors: buttonColors),
-                  MaximizeWindowButton(colors: buttonColors, onPressed: _handleMaximize),
+                  MaximizeWindowButton(colors: buttonColors, onPressed: windowService.handleMaximizeWindow),
                   CloseWindowButton(colors: buttonColors),
                 ],
               ),
@@ -54,14 +51,5 @@ class _WindowWidgetState extends State<WindowWidget> {
         ],
       ),
     );
-  }
-
-  void _handleMaximize() {
-    appWindow.maximizeOrRestore();
-
-    _isMaximized = !_isMaximized;
-
-    Log.info(_isMaximized ? 'Maximized window' : 'Restored window');
-    Get.find<StorageService>().write('windowMaximize', _isMaximized);
   }
 }

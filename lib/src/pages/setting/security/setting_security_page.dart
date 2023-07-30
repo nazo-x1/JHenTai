@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:jhentai/src/extension/widget_extension.dart';
 import 'package:jhentai/src/setting/security_setting.dart';
+import 'package:jhentai/src/utils/toast_util.dart';
+import 'package:jhentai/src/widget/eh_app_password_setting_dialog.dart';
 
 class SettingSecurityPage extends StatelessWidget {
   const SettingSecurityPage({Key? key}) : super(key: key);
@@ -13,11 +16,12 @@ class SettingSecurityPage extends StatelessWidget {
         () => ListView(
           padding: const EdgeInsets.only(top: 16),
           children: [
-            _buildEnableBlurBackgroundApp(),
-            if (SecuritySetting.supportBiometricLock) _buildEnableBiometricLock(),
-            if (SecuritySetting.supportBiometricLock) _buildEnableBiometricLockOnResume(),
+            if (GetPlatform.isMobile) _buildEnableBlurBackgroundApp(),
+            _buildEnablePasswordAuth(),
+            if (SecuritySetting.supportBiometricAuth) _buildEnableBiometricAuth(),
+            if (GetPlatform.isMobile) _buildEnableAuthOnResume(),
           ],
-        ),
+        ).withListTileTheme(context),
       ),
     );
   }
@@ -29,19 +33,42 @@ class SettingSecurityPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEnableBiometricLock() {
+  Widget _buildEnablePasswordAuth() {
     return ListTile(
-      title: Text('enableBiometricLock'.tr),
-      trailing: Switch(value: SecuritySetting.enableBiometricLock.value, onChanged: SecuritySetting.saveEnableBiometricLock),
+      title: Text('enablePasswordAuth'.tr),
+      trailing: Switch(
+        value: SecuritySetting.enablePasswordAuth.value,
+        onChanged: (value) async {
+          if (value) {
+            String? password = await Get.dialog(const EHAppPasswordSettingDialog());
+
+            if (password != null) {
+              SecuritySetting.savePassword(password);
+              toast('success'.tr);
+            } else {
+              return;
+            }
+          }
+
+          SecuritySetting.saveEnablePasswordAuth(value);
+        },
+      ),
     );
   }
 
-  Widget _buildEnableBiometricLockOnResume() {
+  Widget _buildEnableBiometricAuth() {
+    return ListTile(
+      title: Text('enableBiometricAuth'.tr),
+      trailing: Switch(value: SecuritySetting.enableBiometricAuth.value, onChanged: SecuritySetting.saveEnableBiometricAuth),
+    );
+  }
+
+  Widget _buildEnableAuthOnResume() {
     return SwitchListTile(
-      title: Text('enableBiometricLockOnResume'.tr),
-      subtitle: Text('enableBiometricLockOnResumeHints'.tr),
-      value: SecuritySetting.enableBiometricLockOnResume.value,
-      onChanged: SecuritySetting.saveEnableBiometricLockOnResume,
+      title: Text('enableAuthOnResume'.tr),
+      subtitle: Text('enableAuthOnResumeHints'.tr),
+      value: SecuritySetting.enableAuthOnResume.value,
+      onChanged: SecuritySetting.saveEnableAuthOnResume,
     );
   }
 }

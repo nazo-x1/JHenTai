@@ -24,6 +24,9 @@ class Gallery {
   String? language;
   String? uploader;
   String publishTime;
+  bool isExpunged;
+
+  bool hasLocalFilteredTag;
 
   GalleryDownloadedData toGalleryDownloadedData({bool downloadOriginalImage = false, String? group}) {
     return GalleryDownloadedData(
@@ -39,6 +42,7 @@ class Gallery {
       insertTime: DateTime.now().toString(),
       downloadOriginalImage: downloadOriginalImage,
       priority: GalleryDownloadService.defaultDownloadGalleryPriority,
+      sortOrder: 0,
       groupName: group,
     );
   }
@@ -59,13 +63,12 @@ class Gallery {
       uploader: uploader,
       size: size,
       coverUrl: cover.url,
-      coverHeight: cover.height,
-      coverWidth: cover.width,
       publishTime: publishTime,
       archiveStatusIndex: ArchiveStatus.unlocking.index,
       archivePageUrl: archivePageUrl,
       isOriginal: isOriginal,
       insertTime: DateTime.now().toString(),
+      sortOrder: 0,
       groupName: group,
     );
   }
@@ -87,26 +90,30 @@ class Gallery {
     this.language,
     this.uploader,
     required this.publishTime,
+    required this.isExpunged,
+    this.hasLocalFilteredTag = false,
   });
 
   Map<String, dynamic> toJson() {
     return {
-      'gid': this.gid,
-      'token': this.token,
-      'title': this.title,
-      'category': this.category,
-      'cover': this.cover.toJson(),
-      'pageCount': this.pageCount,
-      'rating': this.rating,
-      'hasRated': this.hasRated,
-      'isFavorite': this.isFavorite,
-      'favoriteTagIndex': this.favoriteTagIndex,
-      'favoriteTagName': this.favoriteTagName,
-      'galleryUrl': this.galleryUrl,
-      'tags': this.tags,
-      'language': this.language,
-      'uploader': this.uploader,
-      'publishTime': this.publishTime,
+      'gid': gid,
+      'token': token,
+      'title': title,
+      'category': category,
+      'cover': cover.toJson(),
+      'pageCount': pageCount,
+      'rating': rating,
+      'hasRated': hasRated,
+      'isFavorite': isFavorite,
+      'favoriteTagIndex': favoriteTagIndex,
+      'favoriteTagName': favoriteTagName,
+      'galleryUrl': galleryUrl,
+      'tags': tags,
+      'language': language,
+      'uploader': uploader,
+      'publishTime': publishTime,
+      'isExpunged': isExpunged,
+      'isFilteredByLocalTag': hasLocalFilteredTag,
     };
   }
 
@@ -135,12 +142,14 @@ class Gallery {
       language: map['language'],
       uploader: map['uploader'],
       publishTime: map['publishTime'],
+      isExpunged: map['isExpunged'] ?? false,
+      hasLocalFilteredTag: map['isFilteredByLocalTag'] ?? false,
     );
   }
 
   @override
   String toString() {
-    return 'Gallery{gid: $gid, token: $token, title: $title, category: $category, cover: $cover, pageCount: $pageCount, rating: $rating, hasRated: $hasRated, isFavorite: $isFavorite, favoriteTagIndex: $favoriteTagIndex, favoriteTagName: $favoriteTagName, galleryUrl: $galleryUrl, tags: $tags, language: $language, uploader: $uploader, publishTime: $publishTime}';
+    return 'Gallery{gid: $gid, token: $token, title: $title, category: $category, cover: $cover, pageCount: $pageCount, rating: $rating, hasRated: $hasRated, isFavorite: $isFavorite, favoriteTagIndex: $favoriteTagIndex, favoriteTagName: $favoriteTagName, galleryUrl: $galleryUrl, tags: $tags, language: $language, uploader: $uploader, publishTime: $publishTime, isExpunged: $isExpunged, isFilteredByLocalTag: $hasLocalFilteredTag}';
   }
 
   Gallery copyWith({
@@ -160,6 +169,8 @@ class Gallery {
     String? language,
     String? uploader,
     String? publishTime,
+    bool? isExpunged,
+    bool? isFilteredByLocalTag,
   }) {
     return Gallery(
       gid: gid ?? this.gid,
@@ -178,6 +189,8 @@ class Gallery {
       language: language ?? this.language,
       uploader: uploader ?? this.uploader,
       publishTime: publishTime ?? this.publishTime,
+      isExpunged: isExpunged ?? this.isExpunged,
+      hasLocalFilteredTag: isFilteredByLocalTag ?? this.hasLocalFilteredTag,
     );
   }
 }

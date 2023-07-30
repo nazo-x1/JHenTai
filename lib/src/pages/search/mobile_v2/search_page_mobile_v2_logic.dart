@@ -1,16 +1,13 @@
 import 'package:get/get.dart';
-import 'package:jhentai/src/pages/search/base/base_search_page_logic.dart';
 import 'package:jhentai/src/pages/search/mobile_v2/search_page_mobile_v2_state.dart';
 
 import '../../../model/search_config.dart';
 import '../../base/base_page_logic.dart';
+import '../mixin/search_page_logic_mixin.dart';
 
-class SearchPageMobileV2Logic extends BasePageLogic with BaseSearchPageLogicMixin {
+class SearchPageMobileV2Logic extends BasePageLogic with SearchPageLogicMixin {
   @override
-  int get tabIndex => 1;
-
-  @override
-  bool get useSearchConfig => false;
+  bool get useSearchConfig => true;
 
   @override
   bool get autoLoadForFirstTime => false;
@@ -33,12 +30,12 @@ class SearchPageMobileV2Logic extends BasePageLogic with BaseSearchPageLogicMixi
   void onReady() {
     if (Get.arguments is String) {
       state.searchConfig.keyword = Get.arguments;
-      clearAndRefresh();
+      handleClearAndRefresh();
     }
 
     if (Get.arguments is SearchConfig) {
       state.searchConfig = (Get.arguments as SearchConfig).copyWith();
-      clearAndRefresh();
+      handleClearAndRefresh();
     }
 
     super.onReady();
@@ -48,5 +45,10 @@ class SearchPageMobileV2Logic extends BasePageLogic with BaseSearchPageLogicMixi
   void onClose() {
     super.onClose();
     stack.remove(this);
+  }
+
+  @override
+  void saveSearchConfig(SearchConfig searchConfig) {
+    storageService.write('searchConfig: $runtimeType', searchConfig.copyWith(keyword: '', tags: []).toJson());
   }
 }

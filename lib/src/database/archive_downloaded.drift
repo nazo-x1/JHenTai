@@ -7,8 +7,6 @@ CREATE TABLE archive_downloaded
     pageCount          INT  NOT NULL,
     galleryUrl         TEXT NOT NULL,
     coverUrl           TEXT NOT NULL,
-    coverHeight        REAL NOT NULL,
-    coverWidth         REAL NOT NULL,
     uploader           TEXT,
     size               INT  NOT NULL,
     publishTime        TEXT NOT NULL,
@@ -18,13 +16,15 @@ CREATE TABLE archive_downloaded
     downloadUrl        TEXT NULL,
     isOriginal         BOOL NOT NULL,
     insertTime         TEXT,
+    sortOrder          INT  NOT NULL DEFAULT 0,
     groupName          TEXT,
     PRIMARY KEY (gid, isOriginal)
 );
 
 CREATE TABLE archive_group
 (
-    groupName TEXT NOT NULL PRIMARY KEY
+    groupName TEXT NOT NULL PRIMARY KEY,
+    sortOrder INT  NOT NULL DEFAULT 0
 );
 
 selectArchives:
@@ -33,8 +33,10 @@ FROM archive_downloaded
 ORDER BY insertTime DESC;
 
 insertArchive:
-insert into archive_downloaded
-values (:gid, :token, :title, :category, :pageCount, :galleryUrl, :coverUrl, :coverHeight, :coverWidth, :uploader,
+insert into archive_downloaded(gid, token, title, category, pageCount, galleryUrl, coverUrl, uploader, size,
+                               publishTime, archiveStatusIndex, archivePageUrl, downloadPageUrl, downloadUrl,
+                               isOriginal, insertTime, groupName)
+values (:gid, :token, :title, :category, :pageCount, :galleryUrl, :coverUrl, :uploader,
         :size, :publishTime, :archiveStatusIndex, :archivePageUrl, :downloadPageUrl, :downloadUrl, :isOriginal,
         :insertTime, :groupName);
 
@@ -49,6 +51,7 @@ update archive_downloaded
 set archiveStatusIndex = :archiveStatusIndex,
     downloadPageUrl    = :downloadPageUrl,
     downloadUrl        = :downloadUrl,
+    sortOrder          = :sortOrder,
     groupName          = :groupName
 where gid = :gid
   AND isOriginal = :isOriginal;
@@ -56,16 +59,22 @@ where gid = :gid
 
 selectArchiveGroups:
 SELECT *
-FROM archive_group;
+FROM archive_group
+ORDER BY sortOrder;
 
 insertArchiveGroup:
-insert into archive_group
+insert into archive_group(groupName)
 values (:groupName);
 
 renameArchiveGroup:
 update archive_group
 set groupName = :newGroupName
 where groupName = :oldGroupName;
+
+updateArchiveGroupOrder:
+update archive_group
+set sortOrder = :sortOrder
+where groupName = :groupName;
 
 reGroupArchive:
 update archive_downloaded

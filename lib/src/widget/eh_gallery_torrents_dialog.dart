@@ -12,6 +12,7 @@ import 'package:jhentai/src/utils/log.dart';
 import 'package:jhentai/src/widget/loading_state_indicator.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import '../exception/eh_exception.dart';
 import '../utils/snack_util.dart';
 import '../utils/toast_util.dart';
 
@@ -37,21 +38,24 @@ class _EHGalleryTorrentsDialogState extends State<EHGalleryTorrentsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return SimpleDialog(
-      title: Center(child: Text('torrent'.tr)),
-      contentPadding: const EdgeInsets.only(bottom: 12, top: 24),
-      children: [
-        LoadingStateIndicator(
-          loadingState: loadingState,
-          indicatorRadius: 16,
-          successWidgetBuilder: () => _TorrentList(galleryTorrents: galleryTorrents),
-          errorWidget: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _getTorrent,
-            child: Icon(Icons.refresh, size: 32, color: Get.theme.colorScheme.onSecondaryContainer),
+    return ScrollConfiguration(
+      behavior: UIConfig.scrollBehaviourWithoutScrollBar,
+      child: SimpleDialog(
+        title: Center(child: Text('torrent'.tr)),
+        contentPadding: const EdgeInsets.only(bottom: 12, top: 24),
+        children: [
+          LoadingStateIndicator(
+            loadingState: loadingState,
+            indicatorRadius: 16,
+            successWidgetBuilder: () => _TorrentList(galleryTorrents: galleryTorrents),
+            errorWidget: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _getTorrent,
+              child: Icon(Icons.refresh, size: 32, color: UIConfig.loadingStateIndicatorButtonColor(context)),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -68,7 +72,14 @@ class _EHGalleryTorrentsDialogState extends State<EHGalleryTorrentsDialog> {
       );
     } on DioError catch (e) {
       Log.error('getGalleryTorrentsFailed'.tr, e.message);
-      snack('getGalleryTorrentsFailed'.tr, e.message, snackPosition: SnackPosition.TOP);
+      snack('getGalleryTorrentsFailed'.tr, e.message);
+      if (mounted) {
+        setState(() => loadingState = LoadingState.error);
+      }
+      return;
+    } on EHException catch (e) {
+      Log.error('getGalleryTorrentsFailed'.tr, e.message);
+      snack('getGalleryTorrentsFailed'.tr, e.message);
       if (mounted) {
         setState(() => loadingState = LoadingState.error);
       }
@@ -91,12 +102,16 @@ class _TorrentList extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: galleryTorrents
-          .map(
+          .map<Widget>(
             (torrent) => ListTile(
               dense: true,
               title: InkWell(
-                onTap: () => launchUrlString(torrent.torrentUrl, mode: LaunchMode.externalApplication),
-                child: Text(torrent.title, style: TextStyle(fontSize: UIConfig.torrentDialogTitleSize, color: UIConfig.resumeButtonColor)),
+                onTap: () => launchUrlString(
+                  torrent.torrentUrl.replaceFirst('https://exhentai.org/torrent', 'https://ehtracker.org/get'),
+                  mode: LaunchMode.externalApplication,
+                ),
+                child:
+                    Text(torrent.title, style: TextStyle(fontSize: UIConfig.torrentDialogTitleSize, color: UIConfig.resumePauseButtonColor(context))),
               ),
               subtitle: Row(
                 children: [
@@ -110,15 +125,11 @@ class _TorrentList extends StatelessWidget {
                 ],
               ),
               trailing: IconButton(
-                icon: Icon(FontAwesomeIcons.magnet, size: 16, color: UIConfig.resumeButtonColor),
+                icon: Icon(FontAwesomeIcons.magnet, size: 16, color: UIConfig.resumePauseButtonColor(context)),
                 padding: EdgeInsets.zero,
-                onPressed: () => FlutterClipboard.copy(
-                  torrent.magnetUrl,
-                ).then(
-                  (_) => toast('hasCopiedToClipboard'.tr),
-                ),
+                onPressed: () => FlutterClipboard.copy(torrent.magnetUrl).then((_) => toast('hasCopiedToClipboard'.tr)),
               ),
-            ) as Widget,
+            ),
           )
           .toList()
           .joinNewElement(const Divider(height: 1), joinAtFirst: true),

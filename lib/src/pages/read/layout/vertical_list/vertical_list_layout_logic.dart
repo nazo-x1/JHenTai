@@ -11,7 +11,6 @@ import '../../../../utils/screen_size_util.dart';
 import '../base/base_layout_logic.dart';
 
 class VerticalListLayoutLogic extends BaseLayoutLogic {
-  @override
   VerticalListLayoutState state = VerticalListLayoutState();
 
   @override
@@ -68,20 +67,20 @@ class VerticalListLayoutLogic extends BaseLayoutLogic {
 
   /// jump to a certain image
   @override
-  void jump2PageIndex(int imageIndex) {
+  void jump2ImageIndex(int imageIndex) {
     /// Method [jumpTo] leads to redrawing, so wo use scrollTo
     state.itemScrollController.scrollTo(index: imageIndex, duration: const Duration(milliseconds: 1));
-    super.jump2PageIndex(imageIndex);
+    super.jump2ImageIndex(imageIndex);
   }
 
   /// scroll to a certain image
   @override
-  void scroll2PageIndex(int imageIndex, [Duration? duration]) {
+  void scroll2ImageIndex(int imageIndex, [Duration? duration]) {
     state.itemScrollController.scrollTo(
       index: imageIndex,
       duration: duration ?? const Duration(milliseconds: 200),
     );
-    super.scroll2PageIndex(imageIndex, duration);
+    super.scroll2ImageIndex(imageIndex, duration);
   }
 
   /// scroll or jump until one image in viewport currently reach top
@@ -92,7 +91,7 @@ class VerticalListLayoutLogic extends BaseLayoutLogic {
     }
 
     int targetIndex = firstPosition.itemLeadingEdge < 0 ? firstPosition.index : firstPosition.index - 1;
-    toPageIndex(max(targetIndex, 0));
+    toImageIndex(max(targetIndex, 0));
   }
 
   /// scroll or jump until last image in viewport currently reach top
@@ -103,7 +102,7 @@ class VerticalListLayoutLogic extends BaseLayoutLogic {
     }
 
     int targetIndex = (lastPosition.itemLeadingEdge > 0 && lastPosition.itemTrailingEdge > 1) ? lastPosition.index : lastPosition.index + 1;
-    toPageIndex(min(targetIndex, readPageState.readPageInfo.pageCount));
+    toImageIndex(min(targetIndex, readPageState.readPageInfo.pageCount));
   }
 
   void _toPrevScreen() {
@@ -144,7 +143,7 @@ class VerticalListLayoutLogic extends BaseLayoutLogic {
   }
 
   void _enterAutoModeByScroll() {
-    int restPageCount = readPageState.readPageInfo.pageCount - readPageState.readPageInfo.currentIndex - 1;
+    int restPageCount = readPageState.readPageInfo.pageCount - readPageState.readPageInfo.currentImageIndex - 1;
     double offset = restPageCount * screenHeight;
     double totalTime = restPageCount * ReadSetting.autoModeInterval.value;
 
@@ -165,7 +164,7 @@ class VerticalListLayoutLogic extends BaseLayoutLogic {
       Duration(milliseconds: (ReadSetting.autoModeInterval.value * 1000).toInt()),
       (_) {
         /// changed read direction
-        if (ReadSetting.readDirection.value != ReadDirection.top2bottom) {
+        if (ReadSetting.readDirection.value != ReadDirection.top2bottomList) {
           Get.engine.addPostFrameCallback((_) {
             readPageLogic.closeAutoMode();
           });

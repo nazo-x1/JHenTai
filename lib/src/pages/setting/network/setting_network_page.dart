@@ -1,4 +1,3 @@
-import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -28,12 +27,12 @@ class SettingNetworkPage extends StatelessWidget {
           children: [
             _buildEnableDomainFronting(),
             if (NetworkSetting.enableDomainFronting.isTrue) _buildHostMapping().fadeIn(),
-            if (GetPlatform.isDesktop) _buildProxyAddress(),
+            _buildProxyAddress(),
             _buildPageCacheMaxAge(),
-            _buildConnectTimeout(),
-            _buildReceiveTimeout(),
+            _buildConnectTimeout(context),
+            _buildReceiveTimeout(context),
           ],
-        ),
+        ).withListTileTheme(context),
       ),
     );
   }
@@ -58,31 +57,8 @@ class SettingNetworkPage extends StatelessWidget {
   Widget _buildProxyAddress() {
     return ListTile(
       title: Text('proxyAddress'.tr),
-      subtitle: Text('proxyAddressHint'.tr),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 150,
-            child: TextField(
-              controller: proxyAddressController,
-              decoration: const InputDecoration(isDense: true, labelStyle: TextStyle(fontSize: 12)),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          IconButton(
-            onPressed: () {
-              if (proxyAddressController.value.text.isEmpty) {
-                toast('invalid'.tr);
-                return;
-              }
-              NetworkSetting.saveProxyAddress(proxyAddressController.value.text);
-              toast('saveSuccess'.tr);
-            },
-            icon: Icon(Icons.check, color: UIConfig.resumeButtonColor),
-          ),
-        ],
-      ),
+      trailing: const Icon(Icons.keyboard_arrow_right).marginOnly(right: 4),
+      onTap: () => toRoute(Routes.proxy),
     );
   }
 
@@ -106,7 +82,7 @@ class SettingNetworkPage extends StatelessWidget {
     );
   }
 
-  Widget _buildConnectTimeout() {
+  Widget _buildConnectTimeout(BuildContext context) {
     return ListTile(
       title: Text('connectTimeout'.tr),
       subtitle: Text('needRestart'.tr),
@@ -125,7 +101,7 @@ class SettingNetworkPage extends StatelessWidget {
               ],
             ),
           ),
-          const Text('ms', style: TextStyle(fontSize: 15)),
+          Text('ms', style: UIConfig.settingPageListTileTrailingTextStyle(context)),
           IconButton(
             onPressed: () {
               int? value = int.tryParse(connectTimeoutController.value.text);
@@ -135,14 +111,14 @@ class SettingNetworkPage extends StatelessWidget {
               NetworkSetting.saveConnectTimeout(value);
               toast('saveSuccess'.tr);
             },
-            icon: Icon(Icons.check, color: UIConfig.resumeButtonColor),
+            icon: Icon(Icons.check, color: UIConfig.resumePauseButtonColor(context)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildReceiveTimeout() {
+  Widget _buildReceiveTimeout(BuildContext context) {
     return ListTile(
       title: Text('receiveTimeout'.tr),
       subtitle: Text('needRestart'.tr),
@@ -161,7 +137,7 @@ class SettingNetworkPage extends StatelessWidget {
               ],
             ),
           ),
-          const Text('ms', style: TextStyle(fontSize: 15)),
+          Text('ms', style: UIConfig.settingPageListTileTrailingTextStyle(context)),
           IconButton(
             onPressed: () {
               int? value = int.tryParse(receiveTimeoutController.value.text);
@@ -171,7 +147,7 @@ class SettingNetworkPage extends StatelessWidget {
               NetworkSetting.saveReceiveTimeout(value);
               toast('saveSuccess'.tr);
             },
-            icon: Icon(Icons.check, color: UIConfig.resumeButtonColor),
+            icon: Icon(Icons.check, color: UIConfig.resumePauseButtonColor(context)),
           ),
         ],
       ),

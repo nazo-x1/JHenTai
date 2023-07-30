@@ -1,11 +1,13 @@
+import 'package:collection/collection.dart';
+import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:jhentai/src/extension/get_logic_extension.dart';
 import 'package:jhentai/src/model/read_page_info.dart';
 import 'package:jhentai/src/pages/read/layout/horizontal_double_column/horizontal_double_column_layout_state.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 
 import '../../../../setting/read_setting.dart';
-import '../../widget/eh_photo_view_gallery.dart';
 import '../base/base_layout.dart';
 import 'horizontal_double_column_layout_logic.dart';
 
@@ -15,60 +17,142 @@ class HorizontalDoubleColumnLayout extends BaseLayout {
   @override
   final HorizontalDoubleColumnLayoutLogic logic = Get.put<HorizontalDoubleColumnLayoutLogic>(HorizontalDoubleColumnLayoutLogic(), permanent: true);
 
-  @override
   final HorizontalDoubleColumnLayoutState state = Get.find<HorizontalDoubleColumnLayoutLogic>().state;
 
   @override
   Widget buildBody(BuildContext context) {
-    return Obx(
-      () => EHPhotoViewGallery.builder(
-        itemCount: (readPageState.readPageInfo.pageCount + 1) ~/ 2,
-        scrollPhysics: const ClampingScrollPhysics(),
-        pageController: logic.pageController,
-        cacheExtent: (ReadSetting.preloadPageCount.value.toDouble() + 1) / 2,
-        reverse: ReadSetting.readDirection.value == ReadDirection.right2left,
-        builder: (context, index) => PhotoViewGalleryPageOptions.customChild(
-          controller: state.photoViewController,
-          scaleStateController: state.photoViewScaleStateController,
-          basePosition: state.scalePosition,
-          onScaleEnd: logic.onScaleEnd,
-          child: readPageState.readPageInfo.mode == ReadMode.online
-              ? _buildDoubleColumnItemInOnlineMode(context, index)
-              : _buildDoubleColumnItemInLocalMode(context, index),
-        ),
+    return PhotoViewGallery.builder(
+      scrollPhysics: const ClampingScrollPhysics(),
+      pageController: state.pageController,
+      cacheExtent: (ReadSetting.preloadPageCount.value.toDouble() + 1) / 2,
+      reverse: ReadSetting.isInRight2LeftDirection,
+      itemCount: state.pageCount,
+      builder: (context, index) => PhotoViewGalleryPageOptions.customChild(
+        initialScale: 1.0,
+        minScale: 1.0,
+        maxScale: 2.5,
+        scaleStateCycle: ReadSetting.enableDoubleTapToScaleUp.isTrue ? logic.scaleStateCycle : null,
+        enableTapDragZoom: ReadSetting.enableTapDragToScaleUp.isTrue,
+        child: index < 0 || index >= state.pageCount
+            ? null
+            : readPageState.readPageInfo.mode == ReadMode.online
+                ? _buildDoubleColumnItemInOnlineMode(context, index)
+                : _buildDoubleColumnItemInLocalMode(context, index),
       ),
     );
   }
 
-  Widget _buildDoubleColumnItemInOnlineMode(BuildContext context, int pageIndex) {
+  Widget? _buildDoubleColumnItemInOnlineMode(BuildContext context, int pageIndex) {
+    List<int> displayImageIndexes = logic.computeImagesInPageIndex(pageIndex);
+    if (displayImageIndexes.isEmpty) {
+      return null;
+    }
+
+    if (ReadSetting.isInRight2LeftDirection) {
+      displayImageIndexes.reverseRange(0, displayImageIndexes.length);
+    }
+
+    if (displayImageIndexes.length == 1) {
+      return Center(child: buildItemInOnlineMode(context, displayImageIndexes[0]));
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (ReadSetting.readDirection.value == ReadDirection.left2right) buildItemInOnlineMode(context, pageIndex * 2),
-        if (ReadSetting.readDirection.value == ReadDirection.right2left && pageIndex * 2 + 1 < readPageState.readPageInfo.pageCount)
-          buildItemInOnlineMode(context, pageIndex * 2 + 1),
-        if (pageIndex * 2 + 1 < readPageState.readPageInfo.pageCount) const VerticalDivider(width: 6),
-        if (ReadSetting.readDirection.value == ReadDirection.left2right && pageIndex * 2 + 1 < readPageState.readPageInfo.pageCount)
-          buildItemInOnlineMode(context, pageIndex * 2 + 1),
-        if (ReadSetting.readDirection.value == ReadDirection.right2left) buildItemInOnlineMode(context, pageIndex * 2),
+        buildItemInOnlineMode(context, displayImageIndexes[0]),
+        SizedBox(width: ReadSetting.imageSpace.value.toDouble()),
+        buildItemInOnlineMode(context, displayImageIndexes[1]),
       ],
     );
   }
 
-  Widget _buildDoubleColumnItemInLocalMode(BuildContext context, int pageIndex) {
+  Widget? _buildDoubleColumnItemInLocalMode(BuildContext context, int pageIndex) {
+    List<int> displayImageIndexes = logic.computeImagesInPageIndex(pageIndex);
+    if (displayImageIndexes.isEmpty) {
+      return null;
+    }
+
+    if (ReadSetting.isInRight2LeftDirection) {
+      displayImageIndexes.reverseRange(0, displayImageIndexes.length);
+    }
+
+    if (displayImageIndexes.length == 1) {
+      return Center(child: buildItemInLocalMode(context, displayImageIndexes[0]));
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (ReadSetting.readDirection.value == ReadDirection.left2right) buildItemInLocalMode(context, pageIndex * 2),
-        if (ReadSetting.readDirection.value == ReadDirection.right2left && pageIndex * 2 + 1 < readPageState.readPageInfo.pageCount)
-          buildItemInLocalMode(context, pageIndex * 2 + 1),
-        if (pageIndex * 2 + 1 < readPageState.readPageInfo.pageCount) const VerticalDivider(width: 6),
-        if (ReadSetting.readDirection.value == ReadDirection.left2right && pageIndex * 2 + 1 < readPageState.readPageInfo.pageCount)
-          buildItemInLocalMode(context, pageIndex * 2 + 1),
-        if (ReadSetting.readDirection.value == ReadDirection.right2left) buildItemInLocalMode(context, pageIndex * 2),
+        buildItemInLocalMode(context, displayImageIndexes[0]),
+        SizedBox(width: ReadSetting.imageSpace.value.toDouble()),
+        buildItemInLocalMode(context, displayImageIndexes[1]),
       ],
     );
+  }
+
+  @override
+  Widget? completedWidgetBuilderCallBack(int index, ExtendedImageState state) {
+    if (state.extendedImageInfo == null || logic.readPageState.imageContainerSizes[index] != null) {
+      return null;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (state.extendedImageInfo == null || logic.readPageState.imageContainerSizes[index] != null) {
+        return;
+      }
+
+      bool isSpreadPage = state.extendedImageInfo!.image.width > state.extendedImageInfo!.image.height;
+
+      FittedSizes fittedSizes = logic.getImageFittedSizeIncludeSpread(
+        Size(
+          state.extendedImageInfo!.image.width.toDouble(),
+          state.extendedImageInfo!.image.height.toDouble(),
+        ),
+        isSpreadPage,
+      );
+      logic.readPageState.imageContainerSizes[index] = fittedSizes.destination;
+
+      if (isSpreadPage && !this.state.isSpreadPage[index]) {
+        logic.updateSpreadPage(index);
+      } else {
+        logic.readPageLogic.updateSafely(['${readPageLogic.onlineImageId}::$index']);
+      }
+    });
+
+    return null;
+  }
+
+  @override
+  Widget? completedWidgetBuilderForLocalModeCallBack(int index, ExtendedImageState state) {
+    if (state.extendedImageInfo == null || logic.readPageState.imageContainerSizes[index] != null) {
+      return null;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (state.extendedImageInfo == null || logic.readPageState.imageContainerSizes[index] != null) {
+        return;
+      }
+
+      bool isSpreadPage = state.extendedImageInfo!.image.width > state.extendedImageInfo!.image.height;
+
+      FittedSizes fittedSizes = logic.getImageFittedSizeIncludeSpread(
+        Size(
+          state.extendedImageInfo!.image.width.toDouble(),
+          state.extendedImageInfo!.image.height.toDouble(),
+        ),
+        isSpreadPage,
+      );
+      logic.readPageState.imageContainerSizes[index] = fittedSizes.destination;
+
+      if (isSpreadPage && !this.state.isSpreadPage[index]) {
+        logic.updateSpreadPage(index);
+      } else {
+        logic.galleryDownloadService.updateSafely(['${logic.galleryDownloadService.downloadImageId}::${readPageState.readPageInfo.gid}::$index']);
+      }
+    });
+
+    return null;
   }
 }

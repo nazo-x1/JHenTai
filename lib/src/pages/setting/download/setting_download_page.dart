@@ -1,21 +1,26 @@
 import 'dart:io' as io;
-import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:jhentai/src/config/ui_config.dart';
+import 'package:jhentai/src/extension/string_extension.dart';
+import 'package:jhentai/src/extension/widget_extension.dart';
 import 'package:jhentai/src/service/local_gallery_service.dart';
 import 'package:jhentai/src/setting/download_setting.dart';
 import 'package:jhentai/src/setting/user_setting.dart';
 import 'package:jhentai/src/utils/toast_util.dart';
+import 'package:jhentai/src/widget/eh_wheel_speed_controller.dart';
 import 'package:jhentai/src/widget/loading_state_indicator.dart';
 import 'package:path/path.dart';
-import 'package:permission_handler/permission_handler.dart';
 
+import '../../../routes/routes.dart';
 import '../../../service/archive_download_service.dart';
 import '../../../service/gallery_download_service.dart';
 import '../../../utils/log.dart';
+import '../../../utils/permission_util.dart';
+import '../../../utils/route_util.dart';
 
 class SettingDownloadPage extends StatefulWidget {
   const SettingDownloadPage({Key? key}) : super(key: key);
@@ -31,23 +36,38 @@ class _SettingDownloadPageState extends State<SettingDownloadPage> {
 
   LoadingState changeDownloadPathState = LoadingState.idle;
 
+  final ScrollController scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    super.dispose();
+    scrollController.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(centerTitle: true, title: Text('downloadSetting'.tr)),
       body: Obx(
-        () => ListView(
-          padding: const EdgeInsets.only(top: 16),
-          children: [
-            _buildDownloadPath(),
-            if (!GetPlatform.isIOS) _buildResetDownloadPath(),
-            _buildDownloadOriginalImage(),
-            _buildDownloadConcurrency(),
-            _buildSpeedLimit(),
-            _buildTimeout(),
-            _buildDownloadInOrder(),
-            _buildRestore(),
-          ],
+        () => EHWheelSpeedController(
+          controller: scrollController,
+          child: ListView(
+            controller: scrollController,
+            padding: const EdgeInsets.only(top: 16),
+            children: [
+              _buildDownloadPath(),
+              if (!GetPlatform.isIOS && !GetPlatform.isMacOS) _buildResetDownloadPath(),
+              _buildExtraGalleryScanPath(),
+              if (GetPlatform.isDesktop) _buildSingleImageSavePath(),
+              _buildDownloadOriginalImage(),
+              _buildDownloadConcurrency(),
+              _buildSpeedLimit(context),
+              _buildTimeout(),
+              _buildDownloadInOrder(),
+              _buildDeleteArchiveFileAfterDownload(),
+              _buildRestore(),
+            ],
+          ).withListTileTheme(context),
         ),
       ),
     );
@@ -56,7 +76,7 @@ class _SettingDownloadPageState extends State<SettingDownloadPage> {
   Widget _buildDownloadPath() {
     return ListTile(
       title: Text('downloadPath'.tr),
-      subtitle: Text(DownloadSetting.downloadPath.value),
+      subtitle: Text(DownloadSetting.downloadPath.value.breakWord),
       trailing: changeDownloadPathState == LoadingState.loading ? const CupertinoActivityIndicator() : null,
       onTap: () {
         if (!GetPlatform.isIOS) {
@@ -72,6 +92,24 @@ class _SettingDownloadPageState extends State<SettingDownloadPage> {
       title: Text('resetDownloadPath'.tr),
       subtitle: Text('longPress2Reset'.tr),
       onLongPress: _handleResetDownloadPath,
+    );
+  }
+
+  Widget _buildExtraGalleryScanPath() {
+    return ListTile(
+      title: Text('extraGalleryScanPath'.tr),
+      subtitle: Text('extraGalleryScanPathHint'.tr),
+      trailing: const Icon(Icons.keyboard_arrow_right),
+      onTap: () => toRoute(Routes.extraGalleryScanPath),
+    );
+  }
+
+  Widget _buildSingleImageSavePath() {
+    return ListTile(
+      title: Text('singleImageSavePath'.tr),
+      subtitle: Text(DownloadSetting.singleImageSavePath.value.breakWord),
+      trailing: GetPlatform.isMacOS ? null : const Icon(Icons.keyboard_arrow_right),
+      onTap: GetPlatform.isMacOS ? null : _handleChangeSingleImageSavePath,
     );
   }
 
@@ -109,7 +147,7 @@ class _SettingDownloadPageState extends State<SettingDownloadPage> {
     );
   }
 
-  Widget _buildSpeedLimit() {
+  Widget _buildSpeedLimit(BuildContext context) {
     return ListTile(
       title: Text('speedLimit'.tr),
       subtitle: Text('speedLimitHint'.tr),
@@ -133,7 +171,7 @@ class _SettingDownloadPageState extends State<SettingDownloadPage> {
               DropdownMenuItem(child: Text('99'), value: 99),
             ],
           ),
-          Text('${'images'.tr} ${'per'.tr}').marginSymmetric(horizontal: 8),
+          Text('${'images'.tr} ${'per'.tr}', style: UIConfig.settingPageListTileTrailingTextStyle(context)).marginSymmetric(horizontal: 8),
           DropdownButton<Duration>(
             value: DownloadSetting.period.value,
             elevation: 4,
@@ -177,6 +215,13 @@ class _SettingDownloadPageState extends State<SettingDownloadPage> {
     );
   }
 
+  Widget _buildDeleteArchiveFileAfterDownload() {
+    return ListTile(
+      title: Text('deleteArchiveFileAfterDownload'.tr),
+      trailing: Switch(value: DownloadSetting.deleteArchiveFileAfterDownload.value, onChanged: DownloadSetting.saveDeleteArchiveFileAfterDownload),
+    );
+  }
+
   Widget _buildRestore() {
     return ListTile(
       title: Text('restoreDownloadTasks'.tr),
@@ -194,21 +239,7 @@ class _SettingDownloadPageState extends State<SettingDownloadPage> {
       return;
     }
 
-    if (!GetPlatform.isMacOS) {
-      try {
-        await Permission.manageExternalStorage.request().isGranted;
-        Log.info(await Permission.manageExternalStorage.status);
-      } on Exception catch (e) {
-        Log.error('Request manageExternalStorage permission failed!', e);
-      }
-
-      try {
-        await Permission.storage.request().isGranted;
-        Log.info(await Permission.storage.status);
-      } on Exception catch (e) {
-        Log.error('Request storage permission failed!', e);
-      }
-    }
+    await requestPermission();
 
     String oldDownloadPath = DownloadSetting.downloadPath.value;
 
@@ -224,7 +255,7 @@ class _SettingDownloadPageState extends State<SettingDownloadPage> {
     }
 
     /// check permission
-    if (!_checkPermissionForNewPath(newDownloadPath)) {
+    if (!checkPermissionForPath(newDownloadPath)) {
       toast('invalidPath'.tr, isShort: false);
       return;
     }
@@ -237,26 +268,13 @@ class _SettingDownloadPageState extends State<SettingDownloadPage> {
         archiveDownloadService.pauseAllDownloadArchive(),
       ]);
 
-      io.Directory oldDownloadDir = io.Directory(oldDownloadPath);
-      List<io.FileSystemEntity> oldEntities = oldDownloadDir.listSync(recursive: true);
-      List<io.Directory> oldDirs = oldEntities.whereType<io.Directory>().toList();
-      List<io.File> oldFiles = oldEntities.whereType<io.File>().toList();
-
-      List<Future> futures = [];
-
-      /// copy directories first
-      for (io.Directory oldDir in oldDirs) {
-        io.Directory newDir = io.Directory(join(newDownloadPath, relative(oldDir.path, from: oldDownloadPath)));
-        futures.add(newDir.create(recursive: true));
+      try {
+        await _copyOldFiles(oldDownloadPath, newDownloadPath);
+      } on Exception catch (e) {
+        Log.error('Copy files failed!', e);
+        Log.upload(e, extraInfos: {'oldDownloadPath': oldDownloadPath, 'newDownloadPath': newDownloadPath});
+        toast('internalError'.tr);
       }
-      await Future.wait(futures);
-      futures.clear();
-
-      /// then copy files
-      for (io.File oldFile in oldFiles) {
-        futures.add(oldFile.copy(join(newDownloadPath, relative(oldFile.path, from: oldDownloadPath))));
-      }
-      await Future.wait(futures);
 
       DownloadSetting.saveDownloadPath(newDownloadPath);
 
@@ -277,6 +295,53 @@ class _SettingDownloadPageState extends State<SettingDownloadPage> {
     return _handleChangeDownloadPath(newDownloadPath: DownloadSetting.defaultDownloadPath);
   }
 
+  Future<void> _copyOldFiles(String oldDownloadPath, String newDownloadPath) async {
+    io.Directory oldDownloadDir = io.Directory(oldDownloadPath);
+    List<io.FileSystemEntity> oldEntities = oldDownloadDir.listSync(recursive: true);
+    List<io.Directory> oldDirs = oldEntities.whereType<io.Directory>().toList();
+    List<io.File> oldFiles = oldEntities.whereType<io.File>().toList();
+
+    List<Future> futures = [];
+
+    /// copy directories first
+    for (io.Directory oldDir in oldDirs) {
+      io.Directory newDir = io.Directory(join(newDownloadPath, relative(oldDir.path, from: oldDownloadPath)));
+      futures.add(newDir.create(recursive: true));
+    }
+    await Future.wait(futures);
+    futures.clear();
+
+    /// then copy files
+    for (io.File oldFile in oldFiles) {
+      futures.add(oldFile.copy(join(newDownloadPath, relative(oldFile.path, from: oldDownloadPath))));
+    }
+    await Future.wait(futures);
+  }
+
+  Future<void> _handleChangeSingleImageSavePath() async {
+    String oldPath = DownloadSetting.singleImageSavePath.value;
+    String? newPath;
+
+    /// choose new path
+    try {
+      newPath = await FilePicker.platform.getDirectoryPath();
+    } on Exception catch (e) {
+      Log.error('Pick single image save path failed', e);
+    }
+
+    if (newPath == null || newPath == oldPath) {
+      return;
+    }
+
+    /// check permission
+    if (!checkPermissionForPath(newPath)) {
+      toast('invalidPath'.tr, isShort: false);
+      return;
+    }
+
+    DownloadSetting.saveSingleImageSavePath(newPath);
+  }
+
   Future<void> _restore() async {
     Log.info('Restore download task.');
 
@@ -287,19 +352,5 @@ class _SettingDownloadPageState extends State<SettingDownloadPage> {
       '${'restoredGalleryCount'.tr}: $restoredGalleryCount\n${'restoredArchiveCount'.tr}: $restoredArchiveCount',
       isShort: false,
     );
-  }
-
-  bool _checkPermissionForNewPath(String newDownloadPath) {
-    try {
-      io.File file = io.File(join(newDownloadPath, 'JHenTaiTest'));
-      file.createSync(recursive: true);
-      file.deleteSync();
-    } on FileSystemException catch (e) {
-      Log.error('${'invalidPath'.tr}:$newDownloadPath', e);
-      Log.upload(e, extraInfos: {'path': newDownloadPath});
-      return false;
-    }
-
-    return true;
   }
 }

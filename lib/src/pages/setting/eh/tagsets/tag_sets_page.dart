@@ -1,5 +1,6 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:collection/collection.dart';
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -7,8 +8,10 @@ import 'package:jhentai/src/config/ui_config.dart';
 import 'package:jhentai/src/model/tag_set.dart';
 import 'package:jhentai/src/pages/setting/eh/tagsets/tag_sets_page_logic.dart';
 import 'package:jhentai/src/pages/setting/eh/tagsets/tag_sets_page_state.dart';
+import 'package:jhentai/src/utils/search_util.dart';
 import 'package:jhentai/src/widget/eh_wheel_speed_controller.dart';
 
+import '../../../../utils/route_util.dart';
 import '../../../../widget/loading_state_indicator.dart';
 
 class TagSetsPage extends StatelessWidget {
@@ -46,7 +49,9 @@ class TagSetsPage extends StatelessWidget {
                     idleWidget: FadeIn(
                       child: _Tag(
                         tagSet: state.tagSets[index],
-                        onLongPress: () => logic.showBottomSheet(index, context),
+                        onTap: () => logic.showBottomSheet(index, context),
+                        onLongPress: () => newSearch('${state.tagSets[index].tagData.namespace}:${state.tagSets[index].tagData.key}', true),
+                        onColorUpdated: (v) => logic.handleUpdateColor(index, v),
                         onWeightUpdated: (v) => logic.handleUpdateWeight(index, v),
                         onStatusUpdated: (v) => logic.handleUpdateStatus(index, v),
                       ),
@@ -96,14 +101,18 @@ class TagSetsPage extends StatelessWidget {
 
 class _Tag extends StatelessWidget {
   final TagSet tagSet;
+  final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  final ValueChanged<Color?> onColorUpdated;
   final ValueChanged<String> onWeightUpdated;
   final ValueChanged<TagSetStatus> onStatusUpdated;
 
   const _Tag({
     Key? key,
     required this.tagSet,
+    this.onTap,
     this.onLongPress,
+    required this.onColorUpdated,
     required this.onWeightUpdated,
     required this.onStatusUpdated,
   }) : super(key: key);
@@ -111,118 +120,67 @@ class _Tag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: ListTile(
-        dense: true,
-        onTap: Get.focusScope?.unfocus,
-        onLongPress: onLongPress,
-        leading: _TagHeader(watched: tagSet.watched, hidden: tagSet.hidden, onStatusUpdated: onStatusUpdated),
-        title: Text(tagSet.tagData.translatedNamespace == null
-            ? '${tagSet.tagData.namespace}:${tagSet.tagData.key}'
-            : '${tagSet.tagData.translatedNamespace}:${tagSet.tagData.tagName}'),
-        subtitle: tagSet.tagData.translatedNamespace == null ? null : Text('${tagSet.tagData.namespace}:${tagSet.tagData.key}'),
-        trailing: _TagFooter(weight: tagSet.weight, onWeightUpdated: onWeightUpdated),
+      child: GestureDetector(
+        onSecondaryTap: onTap,
+        child: ListTile(
+          dense: true,
+          onTap: () {
+            Get.focusScope?.unfocus;
+            onTap?.call();
+          },
+          onLongPress: onLongPress,
+          leading: _buildLeadingIcon(context),
+          title: Text(tagSet.tagData.translatedNamespace == null
+              ? '${tagSet.tagData.namespace}:${tagSet.tagData.key}'
+              : '${tagSet.tagData.translatedNamespace}:${tagSet.tagData.tagName}'),
+          subtitle: tagSet.tagData.translatedNamespace == null ? null : Text('${tagSet.tagData.namespace}:${tagSet.tagData.key}'),
+          trailing: _buildWeight(),
+        ),
       ),
     );
   }
-}
 
-class _TagHeader extends StatelessWidget {
-  final bool watched;
-  final bool hidden;
-  final ValueChanged<TagSetStatus> onStatusUpdated;
+  Widget _buildLeadingIcon(BuildContext context) {
+    return IconButton(
+      icon: Icon(
+        tagSet.watched
+            ? Icons.favorite
+            : tagSet.hidden
+                ? Icons.not_interested
+                : Icons.question_mark,
+        color: tagSet.backgroundColor ?? UIConfig.tagSetsPageIconDefaultColor(context),
+      ),
+      onPressed: () async {
+        dynamic result = await showDialog(
+          context: context,
+          builder: (context) => _ColorSettingDialog(initialColor: tagSet.backgroundColor ?? UIConfig.tagSetsPageIconDefaultColor(context)),
+        );
 
-  const _TagHeader({
-    Key? key,
-    required this.watched,
-    required this.hidden,
-    required this.onStatusUpdated,
-  }) : super(key: key);
+        if (result == null) {
+          return;
+        }
 
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<TagSetStatus>(
-      icon: Icon(_computeIcon(), color: UIConfig.tagSetsPageIconColor),
-      initialValue: _computeStatus(),
-      onSelected: onStatusUpdated,
-      elevation: 4,
-      itemBuilder: (_) => [
-        PopupMenuItem<TagSetStatus>(
-          value: TagSetStatus.watched,
-          child: Row(
-            children: [
-              Icon(Icons.favorite, color: UIConfig.tagSetsPageIconColor),
-              const SizedBox(width: 8),
-              Text('watched'.tr),
-            ],
-          ),
-        ),
-        PopupMenuItem<TagSetStatus>(
-          value: TagSetStatus.hidden,
-          child: Row(
-            children: [
-              Icon(Icons.not_interested, color: UIConfig.tagSetsPageIconColor),
-              const SizedBox(width: 8),
-              Text('hidden'.tr),
-            ],
-          ),
-        ),
-        PopupMenuItem<TagSetStatus>(
-          value: TagSetStatus.nope,
-          child: Row(
-            children: [
-              Icon(Icons.question_mark, color: UIConfig.tagSetsPageIconColor),
-              const SizedBox(width: 8),
-              Text('nope'.tr),
-            ],
-          ),
-        ),
-      ],
-      onCanceled: Get.focusScope?.unfocus,
+        if (result == 'default') {
+          onColorUpdated(null);
+        }
+
+        if (result is Color) {
+          onColorUpdated(result);
+        }
+      },
     );
   }
 
-  IconData _computeIcon() {
-    if (watched) {
-      return Icons.favorite;
-    }
-
-    if (hidden) {
-      return Icons.not_interested;
-    }
-
-    return Icons.question_mark;
-  }
-
-  TagSetStatus _computeStatus() {
-    if (watched) {
-      return TagSetStatus.watched;
-    }
-
-    if (hidden) {
-      return TagSetStatus.hidden;
-    }
-
-    return TagSetStatus.nope;
-  }
-}
-
-class _TagFooter extends StatelessWidget {
-  final int weight;
-  final ValueChanged<String> onWeightUpdated;
-
-  const _TagFooter({Key? key, required this.weight, required this.onWeightUpdated}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildWeight() {
     return SizedBox(
       width: 40,
       child: TextField(
-        controller: TextEditingController(text: weight.toString()),
+        controller: TextEditingController(text: tagSet.weight.toString()),
         style: const TextStyle(fontSize: 12),
         decoration: const InputDecoration(isDense: true),
         textAlign: TextAlign.center,
         inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
+          FilteringTextInputFormatter.allow(RegExp(r'[\d-]')),
           NumberRangeTextInputFormatter(minValue: -99, maxValue: 99),
         ],
         onSubmitted: onWeightUpdated,
@@ -255,5 +213,78 @@ class NumberRangeTextInputFormatter extends TextInputFormatter {
     }
 
     return newValue;
+  }
+}
+
+class _ColorSettingDialog extends StatefulWidget {
+  final Color initialColor;
+
+  const _ColorSettingDialog({Key? key, required this.initialColor}) : super(key: key);
+
+  @override
+  State<_ColorSettingDialog> createState() => _ColorSettingDialogState();
+}
+
+class _ColorSettingDialogState extends State<_ColorSettingDialog> {
+  late Color selectedColor;
+
+  @override
+  void initState() {
+    selectedColor = widget.initialColor;
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SimpleDialog(
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: ColorPicker(
+            color: selectedColor,
+            pickersEnabled: const <ColorPickerType, bool>{
+              ColorPickerType.both: true,
+              ColorPickerType.primary: false,
+              ColorPickerType.accent: false,
+              ColorPickerType.bw: false,
+              ColorPickerType.custom: false,
+              ColorPickerType.wheel: true,
+            },
+            pickerTypeLabels: <ColorPickerType, String>{
+              ColorPickerType.both: 'preset'.tr,
+              ColorPickerType.wheel: 'custom'.tr,
+            },
+            enableTonalPalette: true,
+            showColorCode: true,
+            colorCodeHasColor: true,
+            colorCodeTextStyle: const TextStyle(fontSize: 18),
+            width: 36,
+            height: 36,
+            columnSpacing: 16,
+            onColorChanged: (Color color) {
+              selectedColor = color;
+            },
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            TextButton(child: Text('cancel'.tr), onPressed: backRoute),
+            TextButton(
+              child: Text('reset'.tr),
+              onPressed: () {
+                backRoute(result: 'default');
+              },
+            ),
+            TextButton(
+              child: Text('OK'.tr),
+              onPressed: () {
+                backRoute(result: selectedColor);
+              },
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }

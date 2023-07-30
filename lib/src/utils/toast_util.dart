@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
+import 'package:jhentai/src/config/ui_config.dart';
 
 FToast _fToast = FToast();
 
@@ -17,9 +18,9 @@ void toast(String msg, {bool isCenter = true, bool isShort = true}) {
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(25.0),
-      color: Get.isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black.withOpacity(0.9),
+      color: UIConfig.toastBackGroundColor(Get.context!),
     ),
-    child: Text(msg, style: TextStyle(color: Get.isDarkMode ? Colors.black : Colors.white)),
+    child: Text(msg, style: TextStyle(color: UIConfig.toastTextColor(Get.context!))),
   );
 
   _fToast.removeCustomToast();

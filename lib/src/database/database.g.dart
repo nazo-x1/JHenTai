@@ -7,6 +7,450 @@ part of 'database.dart';
 // **************************************************************************
 
 // ignore_for_file: type=lint
+class SuperResolutionInfoData extends DataClass
+    implements Insertable<SuperResolutionInfoData> {
+  final int gid;
+  final int type;
+  final int status;
+  final String imageStatuses;
+  SuperResolutionInfoData(
+      {required this.gid,
+      required this.type,
+      required this.status,
+      required this.imageStatuses});
+  factory SuperResolutionInfoData.fromData(Map<String, dynamic> data,
+      {String? prefix}) {
+    final effectivePrefix = prefix ?? '';
+    return SuperResolutionInfoData(
+      gid: const IntType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}gid'])!,
+      type: const IntType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}type'])!,
+      status: const IntType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}status'])!,
+      imageStatuses: const StringType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}imageStatuses'])!,
+    );
+  }
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['gid'] = Variable<int>(gid);
+    map['type'] = Variable<int>(type);
+    map['status'] = Variable<int>(status);
+    map['imageStatuses'] = Variable<String>(imageStatuses);
+    return map;
+  }
+
+  SuperResolutionInfoCompanion toCompanion(bool nullToAbsent) {
+    return SuperResolutionInfoCompanion(
+      gid: Value(gid),
+      type: Value(type),
+      status: Value(status),
+      imageStatuses: Value(imageStatuses),
+    );
+  }
+
+  factory SuperResolutionInfoData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SuperResolutionInfoData(
+      gid: serializer.fromJson<int>(json['gid']),
+      type: serializer.fromJson<int>(json['type']),
+      status: serializer.fromJson<int>(json['status']),
+      imageStatuses: serializer.fromJson<String>(json['imageStatuses']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'gid': serializer.toJson<int>(gid),
+      'type': serializer.toJson<int>(type),
+      'status': serializer.toJson<int>(status),
+      'imageStatuses': serializer.toJson<String>(imageStatuses),
+    };
+  }
+
+  SuperResolutionInfoData copyWith(
+          {int? gid, int? type, int? status, String? imageStatuses}) =>
+      SuperResolutionInfoData(
+        gid: gid ?? this.gid,
+        type: type ?? this.type,
+        status: status ?? this.status,
+        imageStatuses: imageStatuses ?? this.imageStatuses,
+      );
+  @override
+  String toString() {
+    return (StringBuffer('SuperResolutionInfoData(')
+          ..write('gid: $gid, ')
+          ..write('type: $type, ')
+          ..write('status: $status, ')
+          ..write('imageStatuses: $imageStatuses')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(gid, type, status, imageStatuses);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SuperResolutionInfoData &&
+          other.gid == this.gid &&
+          other.type == this.type &&
+          other.status == this.status &&
+          other.imageStatuses == this.imageStatuses);
+}
+
+class SuperResolutionInfoCompanion
+    extends UpdateCompanion<SuperResolutionInfoData> {
+  final Value<int> gid;
+  final Value<int> type;
+  final Value<int> status;
+  final Value<String> imageStatuses;
+  const SuperResolutionInfoCompanion({
+    this.gid = const Value.absent(),
+    this.type = const Value.absent(),
+    this.status = const Value.absent(),
+    this.imageStatuses = const Value.absent(),
+  });
+  SuperResolutionInfoCompanion.insert({
+    this.gid = const Value.absent(),
+    required int type,
+    required int status,
+    required String imageStatuses,
+  })  : type = Value(type),
+        status = Value(status),
+        imageStatuses = Value(imageStatuses);
+  static Insertable<SuperResolutionInfoData> custom({
+    Expression<int>? gid,
+    Expression<int>? type,
+    Expression<int>? status,
+    Expression<String>? imageStatuses,
+  }) {
+    return RawValuesInsertable({
+      if (gid != null) 'gid': gid,
+      if (type != null) 'type': type,
+      if (status != null) 'status': status,
+      if (imageStatuses != null) 'imageStatuses': imageStatuses,
+    });
+  }
+
+  SuperResolutionInfoCompanion copyWith(
+      {Value<int>? gid,
+      Value<int>? type,
+      Value<int>? status,
+      Value<String>? imageStatuses}) {
+    return SuperResolutionInfoCompanion(
+      gid: gid ?? this.gid,
+      type: type ?? this.type,
+      status: status ?? this.status,
+      imageStatuses: imageStatuses ?? this.imageStatuses,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (gid.present) {
+      map['gid'] = Variable<int>(gid.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<int>(type.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<int>(status.value);
+    }
+    if (imageStatuses.present) {
+      map['imageStatuses'] = Variable<String>(imageStatuses.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SuperResolutionInfoCompanion(')
+          ..write('gid: $gid, ')
+          ..write('type: $type, ')
+          ..write('status: $status, ')
+          ..write('imageStatuses: $imageStatuses')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class SuperResolutionInfo extends Table
+    with TableInfo<SuperResolutionInfo, SuperResolutionInfoData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  SuperResolutionInfo(this.attachedDatabase, [this._alias]);
+  final VerificationMeta _gidMeta = const VerificationMeta('gid');
+  late final GeneratedColumn<int?> gid = GeneratedColumn<int?>(
+      'gid', aliasedName, false,
+      type: const IntType(),
+      requiredDuringInsert: false,
+      $customConstraints: 'NOT NULL PRIMARY KEY');
+  final VerificationMeta _typeMeta = const VerificationMeta('type');
+  late final GeneratedColumn<int?> type = GeneratedColumn<int?>(
+      'type', aliasedName, false,
+      type: const IntType(),
+      requiredDuringInsert: true,
+      $customConstraints: 'NOT NULL');
+  final VerificationMeta _statusMeta = const VerificationMeta('status');
+  late final GeneratedColumn<int?> status = GeneratedColumn<int?>(
+      'status', aliasedName, false,
+      type: const IntType(),
+      requiredDuringInsert: true,
+      $customConstraints: 'NOT NULL');
+  final VerificationMeta _imageStatusesMeta =
+      const VerificationMeta('imageStatuses');
+  late final GeneratedColumn<String?> imageStatuses = GeneratedColumn<String?>(
+      'imageStatuses', aliasedName, false,
+      type: const StringType(),
+      requiredDuringInsert: true,
+      $customConstraints: 'NOT NULL');
+  @override
+  List<GeneratedColumn> get $columns => [gid, type, status, imageStatuses];
+  @override
+  String get aliasedName => _alias ?? 'super_resolution_info';
+  @override
+  String get actualTableName => 'super_resolution_info';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<SuperResolutionInfoData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('gid')) {
+      context.handle(
+          _gidMeta, gid.isAcceptableOrUnknown(data['gid']!, _gidMeta));
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+          _typeMeta, type.isAcceptableOrUnknown(data['type']!, _typeMeta));
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('imageStatuses')) {
+      context.handle(
+          _imageStatusesMeta,
+          imageStatuses.isAcceptableOrUnknown(
+              data['imageStatuses']!, _imageStatusesMeta));
+    } else if (isInserting) {
+      context.missing(_imageStatusesMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {gid};
+  @override
+  SuperResolutionInfoData map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    return SuperResolutionInfoData.fromData(data,
+        prefix: tablePrefix != null ? '$tablePrefix.' : null);
+  }
+
+  @override
+  SuperResolutionInfo createAlias(String alias) {
+    return SuperResolutionInfo(attachedDatabase, alias);
+  }
+
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class TagBrowseProgres extends DataClass
+    implements Insertable<TagBrowseProgres> {
+  final String keyword;
+  final int gid;
+  TagBrowseProgres({required this.keyword, required this.gid});
+  factory TagBrowseProgres.fromData(Map<String, dynamic> data,
+      {String? prefix}) {
+    final effectivePrefix = prefix ?? '';
+    return TagBrowseProgres(
+      keyword: const StringType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}keyword'])!,
+      gid: const IntType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}gid'])!,
+    );
+  }
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['keyword'] = Variable<String>(keyword);
+    map['gid'] = Variable<int>(gid);
+    return map;
+  }
+
+  TagBrowseProgressCompanion toCompanion(bool nullToAbsent) {
+    return TagBrowseProgressCompanion(
+      keyword: Value(keyword),
+      gid: Value(gid),
+    );
+  }
+
+  factory TagBrowseProgres.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TagBrowseProgres(
+      keyword: serializer.fromJson<String>(json['keyword']),
+      gid: serializer.fromJson<int>(json['gid']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'keyword': serializer.toJson<String>(keyword),
+      'gid': serializer.toJson<int>(gid),
+    };
+  }
+
+  TagBrowseProgres copyWith({String? keyword, int? gid}) => TagBrowseProgres(
+        keyword: keyword ?? this.keyword,
+        gid: gid ?? this.gid,
+      );
+  @override
+  String toString() {
+    return (StringBuffer('TagBrowseProgres(')
+          ..write('keyword: $keyword, ')
+          ..write('gid: $gid')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(keyword, gid);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TagBrowseProgres &&
+          other.keyword == this.keyword &&
+          other.gid == this.gid);
+}
+
+class TagBrowseProgressCompanion extends UpdateCompanion<TagBrowseProgres> {
+  final Value<String> keyword;
+  final Value<int> gid;
+  const TagBrowseProgressCompanion({
+    this.keyword = const Value.absent(),
+    this.gid = const Value.absent(),
+  });
+  TagBrowseProgressCompanion.insert({
+    required String keyword,
+    required int gid,
+  })  : keyword = Value(keyword),
+        gid = Value(gid);
+  static Insertable<TagBrowseProgres> custom({
+    Expression<String>? keyword,
+    Expression<int>? gid,
+  }) {
+    return RawValuesInsertable({
+      if (keyword != null) 'keyword': keyword,
+      if (gid != null) 'gid': gid,
+    });
+  }
+
+  TagBrowseProgressCompanion copyWith(
+      {Value<String>? keyword, Value<int>? gid}) {
+    return TagBrowseProgressCompanion(
+      keyword: keyword ?? this.keyword,
+      gid: gid ?? this.gid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (keyword.present) {
+      map['keyword'] = Variable<String>(keyword.value);
+    }
+    if (gid.present) {
+      map['gid'] = Variable<int>(gid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TagBrowseProgressCompanion(')
+          ..write('keyword: $keyword, ')
+          ..write('gid: $gid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class TagBrowseProgress extends Table
+    with TableInfo<TagBrowseProgress, TagBrowseProgres> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  TagBrowseProgress(this.attachedDatabase, [this._alias]);
+  final VerificationMeta _keywordMeta = const VerificationMeta('keyword');
+  late final GeneratedColumn<String?> keyword = GeneratedColumn<String?>(
+      'keyword', aliasedName, false,
+      type: const StringType(),
+      requiredDuringInsert: true,
+      $customConstraints: 'NOT NULL PRIMARY KEY');
+  final VerificationMeta _gidMeta = const VerificationMeta('gid');
+  late final GeneratedColumn<int?> gid = GeneratedColumn<int?>(
+      'gid', aliasedName, false,
+      type: const IntType(),
+      requiredDuringInsert: true,
+      $customConstraints: 'NOT NULL');
+  @override
+  List<GeneratedColumn> get $columns => [keyword, gid];
+  @override
+  String get aliasedName => _alias ?? 'tag_browse_progress';
+  @override
+  String get actualTableName => 'tag_browse_progress';
+  @override
+  VerificationContext validateIntegrity(Insertable<TagBrowseProgres> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('keyword')) {
+      context.handle(_keywordMeta,
+          keyword.isAcceptableOrUnknown(data['keyword']!, _keywordMeta));
+    } else if (isInserting) {
+      context.missing(_keywordMeta);
+    }
+    if (data.containsKey('gid')) {
+      context.handle(
+          _gidMeta, gid.isAcceptableOrUnknown(data['gid']!, _gidMeta));
+    } else if (isInserting) {
+      context.missing(_gidMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {keyword};
+  @override
+  TagBrowseProgres map(Map<String, dynamic> data, {String? tablePrefix}) {
+    return TagBrowseProgres.fromData(data,
+        prefix: tablePrefix != null ? '$tablePrefix.' : null);
+  }
+
+  @override
+  TagBrowseProgress createAlias(String alias) {
+    return TagBrowseProgress(attachedDatabase, alias);
+  }
+
+  @override
+  bool get dontWriteConstraints => true;
+}
+
 class GalleryHistoryData extends DataClass
     implements Insertable<GalleryHistoryData> {
   final int gid;
@@ -616,8 +1060,6 @@ class ArchiveDownloadedData extends DataClass
   final int pageCount;
   final String galleryUrl;
   final String coverUrl;
-  final double coverHeight;
-  final double coverWidth;
   final String? uploader;
   final int size;
   final String publishTime;
@@ -627,6 +1069,7 @@ class ArchiveDownloadedData extends DataClass
   final String? downloadUrl;
   final bool isOriginal;
   final String? insertTime;
+  final int sortOrder;
   final String? groupName;
   ArchiveDownloadedData(
       {required this.gid,
@@ -636,8 +1079,6 @@ class ArchiveDownloadedData extends DataClass
       required this.pageCount,
       required this.galleryUrl,
       required this.coverUrl,
-      required this.coverHeight,
-      required this.coverWidth,
       this.uploader,
       required this.size,
       required this.publishTime,
@@ -647,6 +1088,7 @@ class ArchiveDownloadedData extends DataClass
       this.downloadUrl,
       required this.isOriginal,
       this.insertTime,
+      required this.sortOrder,
       this.groupName});
   factory ArchiveDownloadedData.fromData(Map<String, dynamic> data,
       {String? prefix}) {
@@ -666,10 +1108,6 @@ class ArchiveDownloadedData extends DataClass
           .mapFromDatabaseResponse(data['${effectivePrefix}galleryUrl'])!,
       coverUrl: const StringType()
           .mapFromDatabaseResponse(data['${effectivePrefix}coverUrl'])!,
-      coverHeight: const RealType()
-          .mapFromDatabaseResponse(data['${effectivePrefix}coverHeight'])!,
-      coverWidth: const RealType()
-          .mapFromDatabaseResponse(data['${effectivePrefix}coverWidth'])!,
       uploader: const StringType()
           .mapFromDatabaseResponse(data['${effectivePrefix}uploader']),
       size: const IntType()
@@ -688,6 +1126,8 @@ class ArchiveDownloadedData extends DataClass
           .mapFromDatabaseResponse(data['${effectivePrefix}isOriginal'])!,
       insertTime: const StringType()
           .mapFromDatabaseResponse(data['${effectivePrefix}insertTime']),
+      sortOrder: const IntType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}sortOrder'])!,
       groupName: const StringType()
           .mapFromDatabaseResponse(data['${effectivePrefix}groupName']),
     );
@@ -702,8 +1142,6 @@ class ArchiveDownloadedData extends DataClass
     map['pageCount'] = Variable<int>(pageCount);
     map['galleryUrl'] = Variable<String>(galleryUrl);
     map['coverUrl'] = Variable<String>(coverUrl);
-    map['coverHeight'] = Variable<double>(coverHeight);
-    map['coverWidth'] = Variable<double>(coverWidth);
     if (!nullToAbsent || uploader != null) {
       map['uploader'] = Variable<String?>(uploader);
     }
@@ -721,6 +1159,7 @@ class ArchiveDownloadedData extends DataClass
     if (!nullToAbsent || insertTime != null) {
       map['insertTime'] = Variable<String?>(insertTime);
     }
+    map['sortOrder'] = Variable<int>(sortOrder);
     if (!nullToAbsent || groupName != null) {
       map['groupName'] = Variable<String?>(groupName);
     }
@@ -736,8 +1175,6 @@ class ArchiveDownloadedData extends DataClass
       pageCount: Value(pageCount),
       galleryUrl: Value(galleryUrl),
       coverUrl: Value(coverUrl),
-      coverHeight: Value(coverHeight),
-      coverWidth: Value(coverWidth),
       uploader: uploader == null && nullToAbsent
           ? const Value.absent()
           : Value(uploader),
@@ -755,6 +1192,7 @@ class ArchiveDownloadedData extends DataClass
       insertTime: insertTime == null && nullToAbsent
           ? const Value.absent()
           : Value(insertTime),
+      sortOrder: Value(sortOrder),
       groupName: groupName == null && nullToAbsent
           ? const Value.absent()
           : Value(groupName),
@@ -772,8 +1210,6 @@ class ArchiveDownloadedData extends DataClass
       pageCount: serializer.fromJson<int>(json['pageCount']),
       galleryUrl: serializer.fromJson<String>(json['galleryUrl']),
       coverUrl: serializer.fromJson<String>(json['coverUrl']),
-      coverHeight: serializer.fromJson<double>(json['coverHeight']),
-      coverWidth: serializer.fromJson<double>(json['coverWidth']),
       uploader: serializer.fromJson<String?>(json['uploader']),
       size: serializer.fromJson<int>(json['size']),
       publishTime: serializer.fromJson<String>(json['publishTime']),
@@ -783,6 +1219,7 @@ class ArchiveDownloadedData extends DataClass
       downloadUrl: serializer.fromJson<String?>(json['downloadUrl']),
       isOriginal: serializer.fromJson<bool>(json['isOriginal']),
       insertTime: serializer.fromJson<String?>(json['insertTime']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
       groupName: serializer.fromJson<String?>(json['groupName']),
     );
   }
@@ -797,8 +1234,6 @@ class ArchiveDownloadedData extends DataClass
       'pageCount': serializer.toJson<int>(pageCount),
       'galleryUrl': serializer.toJson<String>(galleryUrl),
       'coverUrl': serializer.toJson<String>(coverUrl),
-      'coverHeight': serializer.toJson<double>(coverHeight),
-      'coverWidth': serializer.toJson<double>(coverWidth),
       'uploader': serializer.toJson<String?>(uploader),
       'size': serializer.toJson<int>(size),
       'publishTime': serializer.toJson<String>(publishTime),
@@ -808,6 +1243,7 @@ class ArchiveDownloadedData extends DataClass
       'downloadUrl': serializer.toJson<String?>(downloadUrl),
       'isOriginal': serializer.toJson<bool>(isOriginal),
       'insertTime': serializer.toJson<String?>(insertTime),
+      'sortOrder': serializer.toJson<int>(sortOrder),
       'groupName': serializer.toJson<String?>(groupName),
     };
   }
@@ -820,8 +1256,6 @@ class ArchiveDownloadedData extends DataClass
           int? pageCount,
           String? galleryUrl,
           String? coverUrl,
-          double? coverHeight,
-          double? coverWidth,
           String? uploader,
           int? size,
           String? publishTime,
@@ -831,6 +1265,7 @@ class ArchiveDownloadedData extends DataClass
           String? downloadUrl,
           bool? isOriginal,
           String? insertTime,
+          int? sortOrder,
           String? groupName}) =>
       ArchiveDownloadedData(
         gid: gid ?? this.gid,
@@ -840,8 +1275,6 @@ class ArchiveDownloadedData extends DataClass
         pageCount: pageCount ?? this.pageCount,
         galleryUrl: galleryUrl ?? this.galleryUrl,
         coverUrl: coverUrl ?? this.coverUrl,
-        coverHeight: coverHeight ?? this.coverHeight,
-        coverWidth: coverWidth ?? this.coverWidth,
         uploader: uploader ?? this.uploader,
         size: size ?? this.size,
         publishTime: publishTime ?? this.publishTime,
@@ -851,6 +1284,7 @@ class ArchiveDownloadedData extends DataClass
         downloadUrl: downloadUrl ?? this.downloadUrl,
         isOriginal: isOriginal ?? this.isOriginal,
         insertTime: insertTime ?? this.insertTime,
+        sortOrder: sortOrder ?? this.sortOrder,
         groupName: groupName ?? this.groupName,
       );
   @override
@@ -863,8 +1297,6 @@ class ArchiveDownloadedData extends DataClass
           ..write('pageCount: $pageCount, ')
           ..write('galleryUrl: $galleryUrl, ')
           ..write('coverUrl: $coverUrl, ')
-          ..write('coverHeight: $coverHeight, ')
-          ..write('coverWidth: $coverWidth, ')
           ..write('uploader: $uploader, ')
           ..write('size: $size, ')
           ..write('publishTime: $publishTime, ')
@@ -874,6 +1306,7 @@ class ArchiveDownloadedData extends DataClass
           ..write('downloadUrl: $downloadUrl, ')
           ..write('isOriginal: $isOriginal, ')
           ..write('insertTime: $insertTime, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('groupName: $groupName')
           ..write(')'))
         .toString();
@@ -888,8 +1321,6 @@ class ArchiveDownloadedData extends DataClass
       pageCount,
       galleryUrl,
       coverUrl,
-      coverHeight,
-      coverWidth,
       uploader,
       size,
       publishTime,
@@ -899,6 +1330,7 @@ class ArchiveDownloadedData extends DataClass
       downloadUrl,
       isOriginal,
       insertTime,
+      sortOrder,
       groupName);
   @override
   bool operator ==(Object other) =>
@@ -911,8 +1343,6 @@ class ArchiveDownloadedData extends DataClass
           other.pageCount == this.pageCount &&
           other.galleryUrl == this.galleryUrl &&
           other.coverUrl == this.coverUrl &&
-          other.coverHeight == this.coverHeight &&
-          other.coverWidth == this.coverWidth &&
           other.uploader == this.uploader &&
           other.size == this.size &&
           other.publishTime == this.publishTime &&
@@ -922,6 +1352,7 @@ class ArchiveDownloadedData extends DataClass
           other.downloadUrl == this.downloadUrl &&
           other.isOriginal == this.isOriginal &&
           other.insertTime == this.insertTime &&
+          other.sortOrder == this.sortOrder &&
           other.groupName == this.groupName);
 }
 
@@ -934,8 +1365,6 @@ class ArchiveDownloadedCompanion
   final Value<int> pageCount;
   final Value<String> galleryUrl;
   final Value<String> coverUrl;
-  final Value<double> coverHeight;
-  final Value<double> coverWidth;
   final Value<String?> uploader;
   final Value<int> size;
   final Value<String> publishTime;
@@ -945,6 +1374,7 @@ class ArchiveDownloadedCompanion
   final Value<String?> downloadUrl;
   final Value<bool> isOriginal;
   final Value<String?> insertTime;
+  final Value<int> sortOrder;
   final Value<String?> groupName;
   const ArchiveDownloadedCompanion({
     this.gid = const Value.absent(),
@@ -954,8 +1384,6 @@ class ArchiveDownloadedCompanion
     this.pageCount = const Value.absent(),
     this.galleryUrl = const Value.absent(),
     this.coverUrl = const Value.absent(),
-    this.coverHeight = const Value.absent(),
-    this.coverWidth = const Value.absent(),
     this.uploader = const Value.absent(),
     this.size = const Value.absent(),
     this.publishTime = const Value.absent(),
@@ -965,6 +1393,7 @@ class ArchiveDownloadedCompanion
     this.downloadUrl = const Value.absent(),
     this.isOriginal = const Value.absent(),
     this.insertTime = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.groupName = const Value.absent(),
   });
   ArchiveDownloadedCompanion.insert({
@@ -975,8 +1404,6 @@ class ArchiveDownloadedCompanion
     required int pageCount,
     required String galleryUrl,
     required String coverUrl,
-    required double coverHeight,
-    required double coverWidth,
     this.uploader = const Value.absent(),
     required int size,
     required String publishTime,
@@ -986,6 +1413,7 @@ class ArchiveDownloadedCompanion
     this.downloadUrl = const Value.absent(),
     required bool isOriginal,
     this.insertTime = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.groupName = const Value.absent(),
   })  : gid = Value(gid),
         token = Value(token),
@@ -994,8 +1422,6 @@ class ArchiveDownloadedCompanion
         pageCount = Value(pageCount),
         galleryUrl = Value(galleryUrl),
         coverUrl = Value(coverUrl),
-        coverHeight = Value(coverHeight),
-        coverWidth = Value(coverWidth),
         size = Value(size),
         publishTime = Value(publishTime),
         archiveStatusIndex = Value(archiveStatusIndex),
@@ -1009,8 +1435,6 @@ class ArchiveDownloadedCompanion
     Expression<int>? pageCount,
     Expression<String>? galleryUrl,
     Expression<String>? coverUrl,
-    Expression<double>? coverHeight,
-    Expression<double>? coverWidth,
     Expression<String?>? uploader,
     Expression<int>? size,
     Expression<String>? publishTime,
@@ -1020,6 +1444,7 @@ class ArchiveDownloadedCompanion
     Expression<String?>? downloadUrl,
     Expression<bool>? isOriginal,
     Expression<String?>? insertTime,
+    Expression<int>? sortOrder,
     Expression<String?>? groupName,
   }) {
     return RawValuesInsertable({
@@ -1030,8 +1455,6 @@ class ArchiveDownloadedCompanion
       if (pageCount != null) 'pageCount': pageCount,
       if (galleryUrl != null) 'galleryUrl': galleryUrl,
       if (coverUrl != null) 'coverUrl': coverUrl,
-      if (coverHeight != null) 'coverHeight': coverHeight,
-      if (coverWidth != null) 'coverWidth': coverWidth,
       if (uploader != null) 'uploader': uploader,
       if (size != null) 'size': size,
       if (publishTime != null) 'publishTime': publishTime,
@@ -1041,6 +1464,7 @@ class ArchiveDownloadedCompanion
       if (downloadUrl != null) 'downloadUrl': downloadUrl,
       if (isOriginal != null) 'isOriginal': isOriginal,
       if (insertTime != null) 'insertTime': insertTime,
+      if (sortOrder != null) 'sortOrder': sortOrder,
       if (groupName != null) 'groupName': groupName,
     });
   }
@@ -1053,8 +1477,6 @@ class ArchiveDownloadedCompanion
       Value<int>? pageCount,
       Value<String>? galleryUrl,
       Value<String>? coverUrl,
-      Value<double>? coverHeight,
-      Value<double>? coverWidth,
       Value<String?>? uploader,
       Value<int>? size,
       Value<String>? publishTime,
@@ -1064,6 +1486,7 @@ class ArchiveDownloadedCompanion
       Value<String?>? downloadUrl,
       Value<bool>? isOriginal,
       Value<String?>? insertTime,
+      Value<int>? sortOrder,
       Value<String?>? groupName}) {
     return ArchiveDownloadedCompanion(
       gid: gid ?? this.gid,
@@ -1073,8 +1496,6 @@ class ArchiveDownloadedCompanion
       pageCount: pageCount ?? this.pageCount,
       galleryUrl: galleryUrl ?? this.galleryUrl,
       coverUrl: coverUrl ?? this.coverUrl,
-      coverHeight: coverHeight ?? this.coverHeight,
-      coverWidth: coverWidth ?? this.coverWidth,
       uploader: uploader ?? this.uploader,
       size: size ?? this.size,
       publishTime: publishTime ?? this.publishTime,
@@ -1084,6 +1505,7 @@ class ArchiveDownloadedCompanion
       downloadUrl: downloadUrl ?? this.downloadUrl,
       isOriginal: isOriginal ?? this.isOriginal,
       insertTime: insertTime ?? this.insertTime,
+      sortOrder: sortOrder ?? this.sortOrder,
       groupName: groupName ?? this.groupName,
     );
   }
@@ -1112,12 +1534,6 @@ class ArchiveDownloadedCompanion
     if (coverUrl.present) {
       map['coverUrl'] = Variable<String>(coverUrl.value);
     }
-    if (coverHeight.present) {
-      map['coverHeight'] = Variable<double>(coverHeight.value);
-    }
-    if (coverWidth.present) {
-      map['coverWidth'] = Variable<double>(coverWidth.value);
-    }
     if (uploader.present) {
       map['uploader'] = Variable<String?>(uploader.value);
     }
@@ -1145,6 +1561,9 @@ class ArchiveDownloadedCompanion
     if (insertTime.present) {
       map['insertTime'] = Variable<String?>(insertTime.value);
     }
+    if (sortOrder.present) {
+      map['sortOrder'] = Variable<int>(sortOrder.value);
+    }
     if (groupName.present) {
       map['groupName'] = Variable<String?>(groupName.value);
     }
@@ -1161,8 +1580,6 @@ class ArchiveDownloadedCompanion
           ..write('pageCount: $pageCount, ')
           ..write('galleryUrl: $galleryUrl, ')
           ..write('coverUrl: $coverUrl, ')
-          ..write('coverHeight: $coverHeight, ')
-          ..write('coverWidth: $coverWidth, ')
           ..write('uploader: $uploader, ')
           ..write('size: $size, ')
           ..write('publishTime: $publishTime, ')
@@ -1172,6 +1589,7 @@ class ArchiveDownloadedCompanion
           ..write('downloadUrl: $downloadUrl, ')
           ..write('isOriginal: $isOriginal, ')
           ..write('insertTime: $insertTime, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('groupName: $groupName')
           ..write(')'))
         .toString();
@@ -1224,19 +1642,6 @@ class ArchiveDownloaded extends Table
   late final GeneratedColumn<String?> coverUrl = GeneratedColumn<String?>(
       'coverUrl', aliasedName, false,
       type: const StringType(),
-      requiredDuringInsert: true,
-      $customConstraints: 'NOT NULL');
-  final VerificationMeta _coverHeightMeta =
-      const VerificationMeta('coverHeight');
-  late final GeneratedColumn<double?> coverHeight = GeneratedColumn<double?>(
-      'coverHeight', aliasedName, false,
-      type: const RealType(),
-      requiredDuringInsert: true,
-      $customConstraints: 'NOT NULL');
-  final VerificationMeta _coverWidthMeta = const VerificationMeta('coverWidth');
-  late final GeneratedColumn<double?> coverWidth = GeneratedColumn<double?>(
-      'coverWidth', aliasedName, false,
-      type: const RealType(),
       requiredDuringInsert: true,
       $customConstraints: 'NOT NULL');
   final VerificationMeta _uploaderMeta = const VerificationMeta('uploader');
@@ -1298,6 +1703,13 @@ class ArchiveDownloaded extends Table
       type: const StringType(),
       requiredDuringInsert: false,
       $customConstraints: '');
+  final VerificationMeta _sortOrderMeta = const VerificationMeta('sortOrder');
+  late final GeneratedColumn<int?> sortOrder = GeneratedColumn<int?>(
+      'sortOrder', aliasedName, false,
+      type: const IntType(),
+      requiredDuringInsert: false,
+      $customConstraints: 'NOT NULL DEFAULT 0',
+      defaultValue: const CustomExpression<int>('0'));
   final VerificationMeta _groupNameMeta = const VerificationMeta('groupName');
   late final GeneratedColumn<String?> groupName = GeneratedColumn<String?>(
       'groupName', aliasedName, true,
@@ -1313,8 +1725,6 @@ class ArchiveDownloaded extends Table
         pageCount,
         galleryUrl,
         coverUrl,
-        coverHeight,
-        coverWidth,
         uploader,
         size,
         publishTime,
@@ -1324,6 +1734,7 @@ class ArchiveDownloaded extends Table
         downloadUrl,
         isOriginal,
         insertTime,
+        sortOrder,
         groupName
       ];
   @override
@@ -1379,22 +1790,6 @@ class ArchiveDownloaded extends Table
           coverUrl.isAcceptableOrUnknown(data['coverUrl']!, _coverUrlMeta));
     } else if (isInserting) {
       context.missing(_coverUrlMeta);
-    }
-    if (data.containsKey('coverHeight')) {
-      context.handle(
-          _coverHeightMeta,
-          coverHeight.isAcceptableOrUnknown(
-              data['coverHeight']!, _coverHeightMeta));
-    } else if (isInserting) {
-      context.missing(_coverHeightMeta);
-    }
-    if (data.containsKey('coverWidth')) {
-      context.handle(
-          _coverWidthMeta,
-          coverWidth.isAcceptableOrUnknown(
-              data['coverWidth']!, _coverWidthMeta));
-    } else if (isInserting) {
-      context.missing(_coverWidthMeta);
     }
     if (data.containsKey('uploader')) {
       context.handle(_uploaderMeta,
@@ -1456,6 +1851,10 @@ class ArchiveDownloaded extends Table
           insertTime.isAcceptableOrUnknown(
               data['insertTime']!, _insertTimeMeta));
     }
+    if (data.containsKey('sortOrder')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sortOrder']!, _sortOrderMeta));
+    }
     if (data.containsKey('groupName')) {
       context.handle(_groupNameMeta,
           groupName.isAcceptableOrUnknown(data['groupName']!, _groupNameMeta));
@@ -1485,25 +1884,30 @@ class ArchiveDownloaded extends Table
 class ArchiveGroupData extends DataClass
     implements Insertable<ArchiveGroupData> {
   final String groupName;
-  ArchiveGroupData({required this.groupName});
+  final int sortOrder;
+  ArchiveGroupData({required this.groupName, required this.sortOrder});
   factory ArchiveGroupData.fromData(Map<String, dynamic> data,
       {String? prefix}) {
     final effectivePrefix = prefix ?? '';
     return ArchiveGroupData(
       groupName: const StringType()
           .mapFromDatabaseResponse(data['${effectivePrefix}groupName'])!,
+      sortOrder: const IntType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}sortOrder'])!,
     );
   }
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['groupName'] = Variable<String>(groupName);
+    map['sortOrder'] = Variable<int>(sortOrder);
     return map;
   }
 
   ArchiveGroupCompanion toCompanion(bool nullToAbsent) {
     return ArchiveGroupCompanion(
       groupName: Value(groupName),
+      sortOrder: Value(sortOrder),
     );
   }
 
@@ -1512,6 +1916,7 @@ class ArchiveGroupData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ArchiveGroupData(
       groupName: serializer.fromJson<String>(json['groupName']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
   }
   @override
@@ -1519,47 +1924,60 @@ class ArchiveGroupData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'groupName': serializer.toJson<String>(groupName),
+      'sortOrder': serializer.toJson<int>(sortOrder),
     };
   }
 
-  ArchiveGroupData copyWith({String? groupName}) => ArchiveGroupData(
+  ArchiveGroupData copyWith({String? groupName, int? sortOrder}) =>
+      ArchiveGroupData(
         groupName: groupName ?? this.groupName,
+        sortOrder: sortOrder ?? this.sortOrder,
       );
   @override
   String toString() {
     return (StringBuffer('ArchiveGroupData(')
-          ..write('groupName: $groupName')
+          ..write('groupName: $groupName, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => groupName.hashCode;
+  int get hashCode => Object.hash(groupName, sortOrder);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is ArchiveGroupData && other.groupName == this.groupName);
+      (other is ArchiveGroupData &&
+          other.groupName == this.groupName &&
+          other.sortOrder == this.sortOrder);
 }
 
 class ArchiveGroupCompanion extends UpdateCompanion<ArchiveGroupData> {
   final Value<String> groupName;
+  final Value<int> sortOrder;
   const ArchiveGroupCompanion({
     this.groupName = const Value.absent(),
+    this.sortOrder = const Value.absent(),
   });
   ArchiveGroupCompanion.insert({
     required String groupName,
+    this.sortOrder = const Value.absent(),
   }) : groupName = Value(groupName);
   static Insertable<ArchiveGroupData> custom({
     Expression<String>? groupName,
+    Expression<int>? sortOrder,
   }) {
     return RawValuesInsertable({
       if (groupName != null) 'groupName': groupName,
+      if (sortOrder != null) 'sortOrder': sortOrder,
     });
   }
 
-  ArchiveGroupCompanion copyWith({Value<String>? groupName}) {
+  ArchiveGroupCompanion copyWith(
+      {Value<String>? groupName, Value<int>? sortOrder}) {
     return ArchiveGroupCompanion(
       groupName: groupName ?? this.groupName,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 
@@ -1569,13 +1987,17 @@ class ArchiveGroupCompanion extends UpdateCompanion<ArchiveGroupData> {
     if (groupName.present) {
       map['groupName'] = Variable<String>(groupName.value);
     }
+    if (sortOrder.present) {
+      map['sortOrder'] = Variable<int>(sortOrder.value);
+    }
     return map;
   }
 
   @override
   String toString() {
     return (StringBuffer('ArchiveGroupCompanion(')
-          ..write('groupName: $groupName')
+          ..write('groupName: $groupName, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
@@ -1593,8 +2015,15 @@ class ArchiveGroup extends Table
       type: const StringType(),
       requiredDuringInsert: true,
       $customConstraints: 'NOT NULL PRIMARY KEY');
+  final VerificationMeta _sortOrderMeta = const VerificationMeta('sortOrder');
+  late final GeneratedColumn<int?> sortOrder = GeneratedColumn<int?>(
+      'sortOrder', aliasedName, false,
+      type: const IntType(),
+      requiredDuringInsert: false,
+      $customConstraints: 'NOT NULL DEFAULT 0',
+      defaultValue: const CustomExpression<int>('0'));
   @override
-  List<GeneratedColumn> get $columns => [groupName];
+  List<GeneratedColumn> get $columns => [groupName, sortOrder];
   @override
   String get aliasedName => _alias ?? 'archive_group';
   @override
@@ -1609,6 +2038,10 @@ class ArchiveGroup extends Table
           groupName.isAcceptableOrUnknown(data['groupName']!, _groupNameMeta));
     } else if (isInserting) {
       context.missing(_groupNameMeta);
+    }
+    if (data.containsKey('sortOrder')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sortOrder']!, _sortOrderMeta));
     }
     return context;
   }
@@ -1645,6 +2078,7 @@ class GalleryDownloadedData extends DataClass
   final String? insertTime;
   final bool downloadOriginalImage;
   final int? priority;
+  final int sortOrder;
   final String? groupName;
   GalleryDownloadedData(
       {required this.gid,
@@ -1660,6 +2094,7 @@ class GalleryDownloadedData extends DataClass
       this.insertTime,
       required this.downloadOriginalImage,
       this.priority,
+      required this.sortOrder,
       this.groupName});
   factory GalleryDownloadedData.fromData(Map<String, dynamic> data,
       {String? prefix}) {
@@ -1691,6 +2126,8 @@ class GalleryDownloadedData extends DataClass
           data['${effectivePrefix}downloadOriginalImage'])!,
       priority: const IntType()
           .mapFromDatabaseResponse(data['${effectivePrefix}priority']),
+      sortOrder: const IntType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}sortOrder'])!,
       groupName: const StringType()
           .mapFromDatabaseResponse(data['${effectivePrefix}groupName']),
     );
@@ -1719,6 +2156,7 @@ class GalleryDownloadedData extends DataClass
     if (!nullToAbsent || priority != null) {
       map['priority'] = Variable<int?>(priority);
     }
+    map['sortOrder'] = Variable<int>(sortOrder);
     if (!nullToAbsent || groupName != null) {
       map['groupName'] = Variable<String?>(groupName);
     }
@@ -1748,6 +2186,7 @@ class GalleryDownloadedData extends DataClass
       priority: priority == null && nullToAbsent
           ? const Value.absent()
           : Value(priority),
+      sortOrder: Value(sortOrder),
       groupName: groupName == null && nullToAbsent
           ? const Value.absent()
           : Value(groupName),
@@ -1774,6 +2213,7 @@ class GalleryDownloadedData extends DataClass
       downloadOriginalImage:
           serializer.fromJson<bool>(json['downloadOriginalImage']),
       priority: serializer.fromJson<int?>(json['priority']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
       groupName: serializer.fromJson<String?>(json['groupName']),
     );
   }
@@ -1794,6 +2234,7 @@ class GalleryDownloadedData extends DataClass
       'insertTime': serializer.toJson<String?>(insertTime),
       'downloadOriginalImage': serializer.toJson<bool>(downloadOriginalImage),
       'priority': serializer.toJson<int?>(priority),
+      'sortOrder': serializer.toJson<int>(sortOrder),
       'groupName': serializer.toJson<String?>(groupName),
     };
   }
@@ -1812,6 +2253,7 @@ class GalleryDownloadedData extends DataClass
           String? insertTime,
           bool? downloadOriginalImage,
           int? priority,
+          int? sortOrder,
           String? groupName}) =>
       GalleryDownloadedData(
         gid: gid ?? this.gid,
@@ -1828,6 +2270,7 @@ class GalleryDownloadedData extends DataClass
         downloadOriginalImage:
             downloadOriginalImage ?? this.downloadOriginalImage,
         priority: priority ?? this.priority,
+        sortOrder: sortOrder ?? this.sortOrder,
         groupName: groupName ?? this.groupName,
       );
   @override
@@ -1846,6 +2289,7 @@ class GalleryDownloadedData extends DataClass
           ..write('insertTime: $insertTime, ')
           ..write('downloadOriginalImage: $downloadOriginalImage, ')
           ..write('priority: $priority, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('groupName: $groupName')
           ..write(')'))
         .toString();
@@ -1866,6 +2310,7 @@ class GalleryDownloadedData extends DataClass
       insertTime,
       downloadOriginalImage,
       priority,
+      sortOrder,
       groupName);
   @override
   bool operator ==(Object other) =>
@@ -1884,6 +2329,7 @@ class GalleryDownloadedData extends DataClass
           other.insertTime == this.insertTime &&
           other.downloadOriginalImage == this.downloadOriginalImage &&
           other.priority == this.priority &&
+          other.sortOrder == this.sortOrder &&
           other.groupName == this.groupName);
 }
 
@@ -1902,6 +2348,7 @@ class GalleryDownloadedCompanion
   final Value<String?> insertTime;
   final Value<bool> downloadOriginalImage;
   final Value<int?> priority;
+  final Value<int> sortOrder;
   final Value<String?> groupName;
   const GalleryDownloadedCompanion({
     this.gid = const Value.absent(),
@@ -1917,6 +2364,7 @@ class GalleryDownloadedCompanion
     this.insertTime = const Value.absent(),
     this.downloadOriginalImage = const Value.absent(),
     this.priority = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.groupName = const Value.absent(),
   });
   GalleryDownloadedCompanion.insert({
@@ -1933,6 +2381,7 @@ class GalleryDownloadedCompanion
     this.insertTime = const Value.absent(),
     this.downloadOriginalImage = const Value.absent(),
     this.priority = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.groupName = const Value.absent(),
   })  : token = Value(token),
         title = Value(title),
@@ -1955,6 +2404,7 @@ class GalleryDownloadedCompanion
     Expression<String?>? insertTime,
     Expression<bool>? downloadOriginalImage,
     Expression<int?>? priority,
+    Expression<int>? sortOrder,
     Expression<String?>? groupName,
   }) {
     return RawValuesInsertable({
@@ -1974,6 +2424,7 @@ class GalleryDownloadedCompanion
       if (downloadOriginalImage != null)
         'downloadOriginalImage': downloadOriginalImage,
       if (priority != null) 'priority': priority,
+      if (sortOrder != null) 'sortOrder': sortOrder,
       if (groupName != null) 'groupName': groupName,
     });
   }
@@ -1992,6 +2443,7 @@ class GalleryDownloadedCompanion
       Value<String?>? insertTime,
       Value<bool>? downloadOriginalImage,
       Value<int?>? priority,
+      Value<int>? sortOrder,
       Value<String?>? groupName}) {
     return GalleryDownloadedCompanion(
       gid: gid ?? this.gid,
@@ -2008,6 +2460,7 @@ class GalleryDownloadedCompanion
       downloadOriginalImage:
           downloadOriginalImage ?? this.downloadOriginalImage,
       priority: priority ?? this.priority,
+      sortOrder: sortOrder ?? this.sortOrder,
       groupName: groupName ?? this.groupName,
     );
   }
@@ -2056,6 +2509,9 @@ class GalleryDownloadedCompanion
     if (priority.present) {
       map['priority'] = Variable<int?>(priority.value);
     }
+    if (sortOrder.present) {
+      map['sortOrder'] = Variable<int>(sortOrder.value);
+    }
     if (groupName.present) {
       map['groupName'] = Variable<String?>(groupName.value);
     }
@@ -2078,6 +2534,7 @@ class GalleryDownloadedCompanion
           ..write('insertTime: $insertTime, ')
           ..write('downloadOriginalImage: $downloadOriginalImage, ')
           ..write('priority: $priority, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('groupName: $groupName')
           ..write(')'))
         .toString();
@@ -2173,6 +2630,13 @@ class GalleryDownloaded extends Table
       type: const IntType(),
       requiredDuringInsert: false,
       $customConstraints: '');
+  final VerificationMeta _sortOrderMeta = const VerificationMeta('sortOrder');
+  late final GeneratedColumn<int?> sortOrder = GeneratedColumn<int?>(
+      'sortOrder', aliasedName, false,
+      type: const IntType(),
+      requiredDuringInsert: false,
+      $customConstraints: 'NOT NULL DEFAULT 0',
+      defaultValue: const CustomExpression<int>('0'));
   final VerificationMeta _groupNameMeta = const VerificationMeta('groupName');
   late final GeneratedColumn<String?> groupName = GeneratedColumn<String?>(
       'groupName', aliasedName, true,
@@ -2194,6 +2658,7 @@ class GalleryDownloaded extends Table
         insertTime,
         downloadOriginalImage,
         priority,
+        sortOrder,
         groupName
       ];
   @override
@@ -2284,6 +2749,10 @@ class GalleryDownloaded extends Table
       context.handle(_priorityMeta,
           priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta));
     }
+    if (data.containsKey('sortOrder')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sortOrder']!, _sortOrderMeta));
+    }
     if (data.containsKey('groupName')) {
       context.handle(_groupNameMeta,
           groupName.isAcceptableOrUnknown(data['groupName']!, _groupNameMeta));
@@ -2312,8 +2781,6 @@ class ImageData extends DataClass implements Insertable<ImageData> {
   final String url;
   final int serialNo;
   final int gid;
-  final double height;
-  final double width;
   final String path;
   final String imageHash;
   final int downloadStatusIndex;
@@ -2321,8 +2788,6 @@ class ImageData extends DataClass implements Insertable<ImageData> {
       {required this.url,
       required this.serialNo,
       required this.gid,
-      required this.height,
-      required this.width,
       required this.path,
       required this.imageHash,
       required this.downloadStatusIndex});
@@ -2335,10 +2800,6 @@ class ImageData extends DataClass implements Insertable<ImageData> {
           .mapFromDatabaseResponse(data['${effectivePrefix}serialNo'])!,
       gid: const IntType()
           .mapFromDatabaseResponse(data['${effectivePrefix}gid'])!,
-      height: const RealType()
-          .mapFromDatabaseResponse(data['${effectivePrefix}height'])!,
-      width: const RealType()
-          .mapFromDatabaseResponse(data['${effectivePrefix}width'])!,
       path: const StringType()
           .mapFromDatabaseResponse(data['${effectivePrefix}path'])!,
       imageHash: const StringType()
@@ -2353,8 +2814,6 @@ class ImageData extends DataClass implements Insertable<ImageData> {
     map['url'] = Variable<String>(url);
     map['serialNo'] = Variable<int>(serialNo);
     map['gid'] = Variable<int>(gid);
-    map['height'] = Variable<double>(height);
-    map['width'] = Variable<double>(width);
     map['path'] = Variable<String>(path);
     map['imageHash'] = Variable<String>(imageHash);
     map['downloadStatusIndex'] = Variable<int>(downloadStatusIndex);
@@ -2366,8 +2825,6 @@ class ImageData extends DataClass implements Insertable<ImageData> {
       url: Value(url),
       serialNo: Value(serialNo),
       gid: Value(gid),
-      height: Value(height),
-      width: Value(width),
       path: Value(path),
       imageHash: Value(imageHash),
       downloadStatusIndex: Value(downloadStatusIndex),
@@ -2381,8 +2838,6 @@ class ImageData extends DataClass implements Insertable<ImageData> {
       url: serializer.fromJson<String>(json['url']),
       serialNo: serializer.fromJson<int>(json['serialNo']),
       gid: serializer.fromJson<int>(json['gid']),
-      height: serializer.fromJson<double>(json['height']),
-      width: serializer.fromJson<double>(json['width']),
       path: serializer.fromJson<String>(json['path']),
       imageHash: serializer.fromJson<String>(json['imageHash']),
       downloadStatusIndex:
@@ -2396,8 +2851,6 @@ class ImageData extends DataClass implements Insertable<ImageData> {
       'url': serializer.toJson<String>(url),
       'serialNo': serializer.toJson<int>(serialNo),
       'gid': serializer.toJson<int>(gid),
-      'height': serializer.toJson<double>(height),
-      'width': serializer.toJson<double>(width),
       'path': serializer.toJson<String>(path),
       'imageHash': serializer.toJson<String>(imageHash),
       'downloadStatusIndex': serializer.toJson<int>(downloadStatusIndex),
@@ -2408,8 +2861,6 @@ class ImageData extends DataClass implements Insertable<ImageData> {
           {String? url,
           int? serialNo,
           int? gid,
-          double? height,
-          double? width,
           String? path,
           String? imageHash,
           int? downloadStatusIndex}) =>
@@ -2417,8 +2868,6 @@ class ImageData extends DataClass implements Insertable<ImageData> {
         url: url ?? this.url,
         serialNo: serialNo ?? this.serialNo,
         gid: gid ?? this.gid,
-        height: height ?? this.height,
-        width: width ?? this.width,
         path: path ?? this.path,
         imageHash: imageHash ?? this.imageHash,
         downloadStatusIndex: downloadStatusIndex ?? this.downloadStatusIndex,
@@ -2429,8 +2878,6 @@ class ImageData extends DataClass implements Insertable<ImageData> {
           ..write('url: $url, ')
           ..write('serialNo: $serialNo, ')
           ..write('gid: $gid, ')
-          ..write('height: $height, ')
-          ..write('width: $width, ')
           ..write('path: $path, ')
           ..write('imageHash: $imageHash, ')
           ..write('downloadStatusIndex: $downloadStatusIndex')
@@ -2439,8 +2886,8 @@ class ImageData extends DataClass implements Insertable<ImageData> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      url, serialNo, gid, height, width, path, imageHash, downloadStatusIndex);
+  int get hashCode =>
+      Object.hash(url, serialNo, gid, path, imageHash, downloadStatusIndex);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2448,8 +2895,6 @@ class ImageData extends DataClass implements Insertable<ImageData> {
           other.url == this.url &&
           other.serialNo == this.serialNo &&
           other.gid == this.gid &&
-          other.height == this.height &&
-          other.width == this.width &&
           other.path == this.path &&
           other.imageHash == this.imageHash &&
           other.downloadStatusIndex == this.downloadStatusIndex);
@@ -2459,8 +2904,6 @@ class ImageCompanion extends UpdateCompanion<ImageData> {
   final Value<String> url;
   final Value<int> serialNo;
   final Value<int> gid;
-  final Value<double> height;
-  final Value<double> width;
   final Value<String> path;
   final Value<String> imageHash;
   final Value<int> downloadStatusIndex;
@@ -2468,8 +2911,6 @@ class ImageCompanion extends UpdateCompanion<ImageData> {
     this.url = const Value.absent(),
     this.serialNo = const Value.absent(),
     this.gid = const Value.absent(),
-    this.height = const Value.absent(),
-    this.width = const Value.absent(),
     this.path = const Value.absent(),
     this.imageHash = const Value.absent(),
     this.downloadStatusIndex = const Value.absent(),
@@ -2478,16 +2919,12 @@ class ImageCompanion extends UpdateCompanion<ImageData> {
     required String url,
     required int serialNo,
     required int gid,
-    required double height,
-    required double width,
     required String path,
     required String imageHash,
     required int downloadStatusIndex,
   })  : url = Value(url),
         serialNo = Value(serialNo),
         gid = Value(gid),
-        height = Value(height),
-        width = Value(width),
         path = Value(path),
         imageHash = Value(imageHash),
         downloadStatusIndex = Value(downloadStatusIndex);
@@ -2495,8 +2932,6 @@ class ImageCompanion extends UpdateCompanion<ImageData> {
     Expression<String>? url,
     Expression<int>? serialNo,
     Expression<int>? gid,
-    Expression<double>? height,
-    Expression<double>? width,
     Expression<String>? path,
     Expression<String>? imageHash,
     Expression<int>? downloadStatusIndex,
@@ -2505,8 +2940,6 @@ class ImageCompanion extends UpdateCompanion<ImageData> {
       if (url != null) 'url': url,
       if (serialNo != null) 'serialNo': serialNo,
       if (gid != null) 'gid': gid,
-      if (height != null) 'height': height,
-      if (width != null) 'width': width,
       if (path != null) 'path': path,
       if (imageHash != null) 'imageHash': imageHash,
       if (downloadStatusIndex != null)
@@ -2518,8 +2951,6 @@ class ImageCompanion extends UpdateCompanion<ImageData> {
       {Value<String>? url,
       Value<int>? serialNo,
       Value<int>? gid,
-      Value<double>? height,
-      Value<double>? width,
       Value<String>? path,
       Value<String>? imageHash,
       Value<int>? downloadStatusIndex}) {
@@ -2527,8 +2958,6 @@ class ImageCompanion extends UpdateCompanion<ImageData> {
       url: url ?? this.url,
       serialNo: serialNo ?? this.serialNo,
       gid: gid ?? this.gid,
-      height: height ?? this.height,
-      width: width ?? this.width,
       path: path ?? this.path,
       imageHash: imageHash ?? this.imageHash,
       downloadStatusIndex: downloadStatusIndex ?? this.downloadStatusIndex,
@@ -2546,12 +2975,6 @@ class ImageCompanion extends UpdateCompanion<ImageData> {
     }
     if (gid.present) {
       map['gid'] = Variable<int>(gid.value);
-    }
-    if (height.present) {
-      map['height'] = Variable<double>(height.value);
-    }
-    if (width.present) {
-      map['width'] = Variable<double>(width.value);
     }
     if (path.present) {
       map['path'] = Variable<String>(path.value);
@@ -2571,8 +2994,6 @@ class ImageCompanion extends UpdateCompanion<ImageData> {
           ..write('url: $url, ')
           ..write('serialNo: $serialNo, ')
           ..write('gid: $gid, ')
-          ..write('height: $height, ')
-          ..write('width: $width, ')
           ..write('path: $path, ')
           ..write('imageHash: $imageHash, ')
           ..write('downloadStatusIndex: $downloadStatusIndex')
@@ -2604,18 +3025,6 @@ class Image extends Table with TableInfo<Image, ImageData> {
       type: const IntType(),
       requiredDuringInsert: true,
       $customConstraints: 'NOT NULL REFERENCES gallery_downloaded (gid)');
-  final VerificationMeta _heightMeta = const VerificationMeta('height');
-  late final GeneratedColumn<double?> height = GeneratedColumn<double?>(
-      'height', aliasedName, false,
-      type: const RealType(),
-      requiredDuringInsert: true,
-      $customConstraints: 'NOT NULL');
-  final VerificationMeta _widthMeta = const VerificationMeta('width');
-  late final GeneratedColumn<double?> width = GeneratedColumn<double?>(
-      'width', aliasedName, false,
-      type: const RealType(),
-      requiredDuringInsert: true,
-      $customConstraints: 'NOT NULL');
   final VerificationMeta _pathMeta = const VerificationMeta('path');
   late final GeneratedColumn<String?> path = GeneratedColumn<String?>(
       'path', aliasedName, false,
@@ -2637,7 +3046,7 @@ class Image extends Table with TableInfo<Image, ImageData> {
       $customConstraints: 'NOT NULL');
   @override
   List<GeneratedColumn> get $columns =>
-      [url, serialNo, gid, height, width, path, imageHash, downloadStatusIndex];
+      [url, serialNo, gid, path, imageHash, downloadStatusIndex];
   @override
   String get aliasedName => _alias ?? 'image';
   @override
@@ -2664,18 +3073,6 @@ class Image extends Table with TableInfo<Image, ImageData> {
           _gidMeta, gid.isAcceptableOrUnknown(data['gid']!, _gidMeta));
     } else if (isInserting) {
       context.missing(_gidMeta);
-    }
-    if (data.containsKey('height')) {
-      context.handle(_heightMeta,
-          height.isAcceptableOrUnknown(data['height']!, _heightMeta));
-    } else if (isInserting) {
-      context.missing(_heightMeta);
-    }
-    if (data.containsKey('width')) {
-      context.handle(
-          _widthMeta, width.isAcceptableOrUnknown(data['width']!, _widthMeta));
-    } else if (isInserting) {
-      context.missing(_widthMeta);
     }
     if (data.containsKey('path')) {
       context.handle(
@@ -2722,25 +3119,30 @@ class Image extends Table with TableInfo<Image, ImageData> {
 class GalleryGroupData extends DataClass
     implements Insertable<GalleryGroupData> {
   final String groupName;
-  GalleryGroupData({required this.groupName});
+  final int sortOrder;
+  GalleryGroupData({required this.groupName, required this.sortOrder});
   factory GalleryGroupData.fromData(Map<String, dynamic> data,
       {String? prefix}) {
     final effectivePrefix = prefix ?? '';
     return GalleryGroupData(
       groupName: const StringType()
           .mapFromDatabaseResponse(data['${effectivePrefix}groupName'])!,
+      sortOrder: const IntType()
+          .mapFromDatabaseResponse(data['${effectivePrefix}sortOrder'])!,
     );
   }
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['groupName'] = Variable<String>(groupName);
+    map['sortOrder'] = Variable<int>(sortOrder);
     return map;
   }
 
   GalleryGroupCompanion toCompanion(bool nullToAbsent) {
     return GalleryGroupCompanion(
       groupName: Value(groupName),
+      sortOrder: Value(sortOrder),
     );
   }
 
@@ -2749,6 +3151,7 @@ class GalleryGroupData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return GalleryGroupData(
       groupName: serializer.fromJson<String>(json['groupName']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
   }
   @override
@@ -2756,47 +3159,60 @@ class GalleryGroupData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'groupName': serializer.toJson<String>(groupName),
+      'sortOrder': serializer.toJson<int>(sortOrder),
     };
   }
 
-  GalleryGroupData copyWith({String? groupName}) => GalleryGroupData(
+  GalleryGroupData copyWith({String? groupName, int? sortOrder}) =>
+      GalleryGroupData(
         groupName: groupName ?? this.groupName,
+        sortOrder: sortOrder ?? this.sortOrder,
       );
   @override
   String toString() {
     return (StringBuffer('GalleryGroupData(')
-          ..write('groupName: $groupName')
+          ..write('groupName: $groupName, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => groupName.hashCode;
+  int get hashCode => Object.hash(groupName, sortOrder);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is GalleryGroupData && other.groupName == this.groupName);
+      (other is GalleryGroupData &&
+          other.groupName == this.groupName &&
+          other.sortOrder == this.sortOrder);
 }
 
 class GalleryGroupCompanion extends UpdateCompanion<GalleryGroupData> {
   final Value<String> groupName;
+  final Value<int> sortOrder;
   const GalleryGroupCompanion({
     this.groupName = const Value.absent(),
+    this.sortOrder = const Value.absent(),
   });
   GalleryGroupCompanion.insert({
     required String groupName,
+    this.sortOrder = const Value.absent(),
   }) : groupName = Value(groupName);
   static Insertable<GalleryGroupData> custom({
     Expression<String>? groupName,
+    Expression<int>? sortOrder,
   }) {
     return RawValuesInsertable({
       if (groupName != null) 'groupName': groupName,
+      if (sortOrder != null) 'sortOrder': sortOrder,
     });
   }
 
-  GalleryGroupCompanion copyWith({Value<String>? groupName}) {
+  GalleryGroupCompanion copyWith(
+      {Value<String>? groupName, Value<int>? sortOrder}) {
     return GalleryGroupCompanion(
       groupName: groupName ?? this.groupName,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 
@@ -2806,13 +3222,17 @@ class GalleryGroupCompanion extends UpdateCompanion<GalleryGroupData> {
     if (groupName.present) {
       map['groupName'] = Variable<String>(groupName.value);
     }
+    if (sortOrder.present) {
+      map['sortOrder'] = Variable<int>(sortOrder.value);
+    }
     return map;
   }
 
   @override
   String toString() {
     return (StringBuffer('GalleryGroupCompanion(')
-          ..write('groupName: $groupName')
+          ..write('groupName: $groupName, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
@@ -2830,8 +3250,15 @@ class GalleryGroup extends Table
       type: const StringType(),
       requiredDuringInsert: true,
       $customConstraints: 'NOT NULL PRIMARY KEY');
+  final VerificationMeta _sortOrderMeta = const VerificationMeta('sortOrder');
+  late final GeneratedColumn<int?> sortOrder = GeneratedColumn<int?>(
+      'sortOrder', aliasedName, false,
+      type: const IntType(),
+      requiredDuringInsert: false,
+      $customConstraints: 'NOT NULL DEFAULT 0',
+      defaultValue: const CustomExpression<int>('0'));
   @override
-  List<GeneratedColumn> get $columns => [groupName];
+  List<GeneratedColumn> get $columns => [groupName, sortOrder];
   @override
   String get aliasedName => _alias ?? 'gallery_group';
   @override
@@ -2846,6 +3273,10 @@ class GalleryGroup extends Table
           groupName.isAcceptableOrUnknown(data['groupName']!, _groupNameMeta));
     } else if (isInserting) {
       context.missing(_groupNameMeta);
+    }
+    if (data.containsKey('sortOrder')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sortOrder']!, _sortOrderMeta));
     }
     return context;
   }
@@ -2869,6 +3300,9 @@ class GalleryGroup extends Table
 
 abstract class _$AppDb extends GeneratedDatabase {
   _$AppDb(QueryExecutor e) : super(SqlTypeSystem.defaultInstance, e);
+  late final SuperResolutionInfo superResolutionInfo =
+      SuperResolutionInfo(this);
+  late final TagBrowseProgress tagBrowseProgress = TagBrowseProgress(this);
   late final GalleryHistory galleryHistory = GalleryHistory(this);
   late final Tag tag = Tag(this);
   late final ArchiveDownloaded archiveDownloaded = ArchiveDownloaded(this);
@@ -2876,6 +3310,70 @@ abstract class _$AppDb extends GeneratedDatabase {
   late final GalleryDownloaded galleryDownloaded = GalleryDownloaded(this);
   late final Image image = Image(this);
   late final GalleryGroup galleryGroup = GalleryGroup(this);
+  Selectable<SuperResolutionInfoData> selectAllSuperResolutionInfo() {
+    return customSelect('SELECT *\r\nfrom super_resolution_info',
+        variables: [],
+        readsFrom: {
+          superResolutionInfo,
+        }).map(superResolutionInfo.mapFromRow);
+  }
+
+  Future<int> insertSuperResolutionInfo(
+      int gid, int type, int status, String imageStatuses) {
+    return customInsert(
+      'INSERT INTO super_resolution_info\r\nvalues (:gid, :type, :status, :imageStatuses)',
+      variables: [
+        Variable<int>(gid),
+        Variable<int>(type),
+        Variable<int>(status),
+        Variable<String>(imageStatuses)
+      ],
+      updates: {superResolutionInfo},
+    );
+  }
+
+  Future<int> updateSuperResolutionInfoStatus(
+      int status, String imageStatuses, int gid) {
+    return customUpdate(
+      'update super_resolution_info\r\nset status        = :status,\r\n    imageStatuses = :imageStatuses\r\nwhere gid = :gid',
+      variables: [
+        Variable<int>(status),
+        Variable<String>(imageStatuses),
+        Variable<int>(gid)
+      ],
+      updates: {superResolutionInfo},
+      updateKind: UpdateKind.update,
+    );
+  }
+
+  Future<int> deleteSuperResolutionInfo(int gid) {
+    return customUpdate(
+      'delete\r\nfrom super_resolution_info\r\nwhere gid = :gid',
+      variables: [Variable<int>(gid)],
+      updates: {superResolutionInfo},
+      updateKind: UpdateKind.delete,
+    );
+  }
+
+  Selectable<TagBrowseProgres> selectTagBrowseProgress(String keyword) {
+    return customSelect(
+        'select *\r\nfrom tag_browse_progress\r\nwhere keyword = :keyword',
+        variables: [
+          Variable<String>(keyword)
+        ],
+        readsFrom: {
+          tagBrowseProgress,
+        }).map(tagBrowseProgress.mapFromRow);
+  }
+
+  Future<int> updateTagBrowseProgress(String keyword, int gid) {
+    return customInsert(
+      'insert or ignore into tag_browse_progress(keyword, gid)\r\nvalues (:keyword, :gid)\r\non conflict (keyword) do update\r\n    set gid = :gid and gid > :gid\r\nwhere keyword = :keyword',
+      variables: [Variable<String>(keyword), Variable<int>(gid)],
+      updates: {tagBrowseProgress},
+    );
+  }
+
   Selectable<GalleryHistoryData> selectHistorys() {
     return customSelect(
         'SELECT *\r\nFROM gallery_history\r\nORDER BY lastReadTime DESC',
@@ -3012,8 +3510,6 @@ abstract class _$AppDb extends GeneratedDatabase {
       int pageCount,
       String galleryUrl,
       String coverUrl,
-      double coverHeight,
-      double coverWidth,
       String? uploader,
       int size,
       String publishTime,
@@ -3025,7 +3521,7 @@ abstract class _$AppDb extends GeneratedDatabase {
       String? insertTime,
       String? groupName) {
     return customInsert(
-      'insert into archive_downloaded\r\nvalues (:gid, :token, :title, :category, :pageCount, :galleryUrl, :coverUrl, :coverHeight, :coverWidth, :uploader,\r\n        :size, :publishTime, :archiveStatusIndex, :archivePageUrl, :downloadPageUrl, :downloadUrl, :isOriginal,\r\n        :insertTime, :groupName)',
+      'insert into archive_downloaded(gid, token, title, category, pageCount, galleryUrl, coverUrl, uploader, size,\r\n                               publishTime, archiveStatusIndex, archivePageUrl, downloadPageUrl, downloadUrl,\r\n                               isOriginal, insertTime, groupName)\r\nvalues (:gid, :token, :title, :category, :pageCount, :galleryUrl, :coverUrl, :uploader,\r\n        :size, :publishTime, :archiveStatusIndex, :archivePageUrl, :downloadPageUrl, :downloadUrl, :isOriginal,\r\n        :insertTime, :groupName)',
       variables: [
         Variable<int>(gid),
         Variable<String>(token),
@@ -3034,8 +3530,6 @@ abstract class _$AppDb extends GeneratedDatabase {
         Variable<int>(pageCount),
         Variable<String>(galleryUrl),
         Variable<String>(coverUrl),
-        Variable<double>(coverHeight),
-        Variable<double>(coverWidth),
         Variable<String?>(uploader),
         Variable<int>(size),
         Variable<String>(publishTime),
@@ -3060,14 +3554,21 @@ abstract class _$AppDb extends GeneratedDatabase {
     );
   }
 
-  Future<int> updateArchive(int archiveStatusIndex, String? downloadPageUrl,
-      String? downloadUrl, String? groupName, int gid, bool isOriginal) {
+  Future<int> updateArchive(
+      int archiveStatusIndex,
+      String? downloadPageUrl,
+      String? downloadUrl,
+      int sortOrder,
+      String? groupName,
+      int gid,
+      bool isOriginal) {
     return customUpdate(
-      'update archive_downloaded\r\nset archiveStatusIndex = :archiveStatusIndex,\r\n    downloadPageUrl    = :downloadPageUrl,\r\n    downloadUrl        = :downloadUrl,\r\n    groupName          = :groupName\r\nwhere gid = :gid\r\n  AND isOriginal = :isOriginal',
+      'update archive_downloaded\r\nset archiveStatusIndex = :archiveStatusIndex,\r\n    downloadPageUrl    = :downloadPageUrl,\r\n    downloadUrl        = :downloadUrl,\r\n    sortOrder          = :sortOrder,\r\n    groupName          = :groupName\r\nwhere gid = :gid\r\n  AND isOriginal = :isOriginal',
       variables: [
         Variable<int>(archiveStatusIndex),
         Variable<String?>(downloadPageUrl),
         Variable<String?>(downloadUrl),
+        Variable<int>(sortOrder),
         Variable<String?>(groupName),
         Variable<int>(gid),
         Variable<bool>(isOriginal)
@@ -3078,7 +3579,7 @@ abstract class _$AppDb extends GeneratedDatabase {
   }
 
   Selectable<ArchiveGroupData> selectArchiveGroups() {
-    return customSelect('SELECT *\r\nFROM archive_group',
+    return customSelect('SELECT *\r\nFROM archive_group\r\nORDER BY sortOrder',
         variables: [],
         readsFrom: {
           archiveGroup,
@@ -3087,7 +3588,7 @@ abstract class _$AppDb extends GeneratedDatabase {
 
   Future<int> insertArchiveGroup(String groupName) {
     return customInsert(
-      'insert into archive_group\r\nvalues (:groupName)',
+      'insert into archive_group(groupName)\r\nvalues (:groupName)',
       variables: [Variable<String>(groupName)],
       updates: {archiveGroup},
     );
@@ -3100,6 +3601,15 @@ abstract class _$AppDb extends GeneratedDatabase {
         Variable<String>(newGroupName),
         Variable<String>(oldGroupName)
       ],
+      updates: {archiveGroup},
+      updateKind: UpdateKind.update,
+    );
+  }
+
+  Future<int> updateArchiveGroupOrder(int sortOrder, String groupName) {
+    return customUpdate(
+      'update archive_group\r\nset sortOrder = :sortOrder\r\nwhere groupName = :groupName',
+      variables: [Variable<int>(sortOrder), Variable<String>(groupName)],
       updates: {archiveGroup},
       updateKind: UpdateKind.update,
     );
@@ -3128,7 +3638,7 @@ abstract class _$AppDb extends GeneratedDatabase {
 
   Selectable<SelectGallerysWithImagesResult> selectGallerysWithImages() {
     return customSelect(
-        'SELECT g.gid,\r\n       g.token,\r\n       g.title,\r\n       g.category,\r\n       g.pageCount,\r\n       g.galleryUrl,\r\n       g.oldVersionGalleryUrl,\r\n       g.uploader,\r\n       g.publishTime,\r\n       g.downloadStatusIndex as galleryDownloadStatusIndex,\r\n       g.insertTime,\r\n       g.downloadOriginalImage,\r\n       g.priority,\r\n       g.groupName,\r\n       i.url,\r\n       i.serialNo,\r\n       i.height,\r\n       i.width,\r\n       i.path,\r\n       i.imageHash,\r\n       i.downloadStatusIndex as imageDownloadStatusIndex\r\nFROM gallery_downloaded g\r\n         left join image i on g.gid = i.gid\r\nORDER BY insertTime DESC, serialNo',
+        'SELECT g.gid,\r\n       g.token,\r\n       g.title,\r\n       g.category,\r\n       g.pageCount,\r\n       g.galleryUrl,\r\n       g.oldVersionGalleryUrl,\r\n       g.uploader,\r\n       g.publishTime,\r\n       g.downloadStatusIndex as galleryDownloadStatusIndex,\r\n       g.insertTime,\r\n       g.downloadOriginalImage,\r\n       g.priority,\r\n       g.sortOrder,\r\n       g.groupName,\r\n       i.url,\r\n       i.serialNo,\r\n       i.path,\r\n       i.imageHash,\r\n       i.downloadStatusIndex as imageDownloadStatusIndex\r\nFROM gallery_downloaded g\r\n         left join image i on g.gid = i.gid\r\nORDER BY insertTime DESC, serialNo',
         variables: [],
         readsFrom: {
           galleryDownloaded,
@@ -3148,11 +3658,10 @@ abstract class _$AppDb extends GeneratedDatabase {
         insertTime: row.read<String?>('insertTime'),
         downloadOriginalImage: row.read<bool>('downloadOriginalImage'),
         priority: row.read<int?>('priority'),
+        sortOrder: row.read<int>('sortOrder'),
         groupName: row.read<String?>('groupName'),
         url: row.read<String?>('url'),
         serialNo: row.read<int?>('serialNo'),
-        height: row.read<double?>('height'),
-        width: row.read<double?>('width'),
         path: row.read<String?>('path'),
         imageHash: row.read<String?>('imageHash'),
         imageDownloadStatusIndex: row.read<int?>('imageDownloadStatusIndex'),
@@ -3185,7 +3694,7 @@ abstract class _$AppDb extends GeneratedDatabase {
       int? priority,
       String? groupName) {
     return customInsert(
-      'insert into gallery_downloaded\r\nvalues (:gid, :token, :title, :category, :pageCount, :galleryUrl, :oldVersionGalleryUrl, :uploader, :publishTime,\r\n        :downloadStatusIndex, :insertTime, :downloadOriginalImage, :priority, :groupName)',
+      'insert into gallery_downloaded(gid, token, title, category, pageCount, galleryUrl, oldVersionGalleryUrl, uploader,\r\n                               publishTime, downloadStatusIndex, insertTime, downloadOriginalImage, priority, groupName)\r\nvalues (:gid, :token, :title, :category, :pageCount, :galleryUrl, :oldVersionGalleryUrl, :uploader, :publishTime,\r\n        :downloadStatusIndex, :insertTime, :downloadOriginalImage, :priority, :groupName)',
       variables: [
         Variable<int>(gid),
         Variable<String>(token),
@@ -3233,6 +3742,15 @@ abstract class _$AppDb extends GeneratedDatabase {
     );
   }
 
+  Future<int> updateGalleryOrder(int sortOrder, int gid) {
+    return customUpdate(
+      'update gallery_downloaded\r\nset sortOrder = :sortOrder\r\nwhere gid = :gid',
+      variables: [Variable<int>(sortOrder), Variable<int>(gid)],
+      updates: {galleryDownloaded},
+      updateKind: UpdateKind.update,
+    );
+  }
+
   Future<int> updateGalleryGroup(String? groupName, int gid) {
     return customUpdate(
       'update gallery_downloaded\r\nset groupName = :groupName\r\nwhere gid = :gid',
@@ -3253,16 +3771,14 @@ abstract class _$AppDb extends GeneratedDatabase {
         }).map(galleryDownloaded.mapFromRow);
   }
 
-  Future<int> insertImage(String url, int serialNo, int gid, double height,
-      double width, String path, String imageHash, int downloadStatusIndex) {
+  Future<int> insertImage(String url, int serialNo, int gid, String path,
+      String imageHash, int downloadStatusIndex) {
     return customInsert(
-      'insert into image\r\nvalues (:url, :serialNo, :gid, :height, :width, :path, :imageHash, :downloadStatusIndex)',
+      'insert into image\r\nvalues (:url, :serialNo, :gid, :path, :imageHash, :downloadStatusIndex)',
       variables: [
         Variable<String>(url),
         Variable<int>(serialNo),
         Variable<int>(gid),
-        Variable<double>(height),
-        Variable<double>(width),
         Variable<String>(path),
         Variable<String>(imageHash),
         Variable<int>(downloadStatusIndex)
@@ -3329,7 +3845,7 @@ abstract class _$AppDb extends GeneratedDatabase {
   }
 
   Selectable<GalleryGroupData> selectGalleryGroups() {
-    return customSelect('SELECT *\r\nFROM gallery_group',
+    return customSelect('SELECT *\r\nFROM gallery_group\r\nORDER BY sortOrder',
         variables: [],
         readsFrom: {
           galleryGroup,
@@ -3338,7 +3854,7 @@ abstract class _$AppDb extends GeneratedDatabase {
 
   Future<int> insertGalleryGroup(String groupName) {
     return customInsert(
-      'insert into gallery_group\r\nvalues (:groupName)',
+      'insert into gallery_group(groupName)\r\nvalues (:groupName)',
       variables: [Variable<String>(groupName)],
       updates: {galleryGroup},
     );
@@ -3351,6 +3867,15 @@ abstract class _$AppDb extends GeneratedDatabase {
         Variable<String>(newGroupName),
         Variable<String>(oldGroupName)
       ],
+      updates: {galleryGroup},
+      updateKind: UpdateKind.update,
+    );
+  }
+
+  Future<int> updateGalleryGroupOrder(int sortOrder, String groupName) {
+    return customUpdate(
+      'update gallery_group\r\nset sortOrder = :sortOrder\r\nwhere groupName = :groupName',
+      variables: [Variable<int>(sortOrder), Variable<String>(groupName)],
       updates: {galleryGroup},
       updateKind: UpdateKind.update,
     );
@@ -3381,6 +3906,8 @@ abstract class _$AppDb extends GeneratedDatabase {
   Iterable<TableInfo> get allTables => allSchemaEntities.whereType<TableInfo>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+        superResolutionInfo,
+        tagBrowseProgress,
         galleryHistory,
         tag,
         archiveDownloaded,
@@ -3405,11 +3932,10 @@ class SelectGallerysWithImagesResult {
   final String? insertTime;
   final bool downloadOriginalImage;
   final int? priority;
+  final int sortOrder;
   final String? groupName;
   final String? url;
   final int? serialNo;
-  final double? height;
-  final double? width;
   final String? path;
   final String? imageHash;
   final int? imageDownloadStatusIndex;
@@ -3427,11 +3953,10 @@ class SelectGallerysWithImagesResult {
     this.insertTime,
     required this.downloadOriginalImage,
     this.priority,
+    required this.sortOrder,
     this.groupName,
     this.url,
     this.serialNo,
-    this.height,
-    this.width,
     this.path,
     this.imageHash,
     this.imageDownloadStatusIndex,

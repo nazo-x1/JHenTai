@@ -36,21 +36,14 @@ class EHCookieManager extends CookieManager {
       }
     } on Exception catch (_) {
       Log.warning('cookieJar init failed, use default setting');
-      Set<String> defaultHostSet = NetworkSetting.currentHost2IP.entries.fold<Set<String>>(
-        <String>{},
-        (previousValue, entry) => previousValue..addAll([entry.key, entry.value]),
-      );
-      await _cookieJar.storage.write(_cookieJar.IndexKey, json.encode(defaultHostSet.toList()));
+      await _cookieJar.storage.write(_cookieJar.IndexKey, json.encode(NetworkSetting.allHostAndIPs.toList()));
     }
 
     await _cookieJar.forceInit();
 
     /// eagerly load cookie into memory
     await Future.wait(
-      NetworkSetting.host2IPs.keys.map((host) => _cookieJar.loadForRequest(Uri.parse('https://$host'))),
-    );
-    await Future.wait(
-      NetworkSetting.allIPs.map((ip) => _cookieJar.loadForRequest(Uri.parse('https://$ip'))),
+      NetworkSetting.allHostAndIPs.map((ip) => _cookieJar.loadForRequest(Uri.parse('https://$ip'))),
     );
 
     Get.put<EHCookieManager>(EHCookieManager(_cookieJar));
@@ -59,7 +52,10 @@ class EHCookieManager extends CookieManager {
     if (cookies.isEmpty && UserSetting.hasLoggedIn()) {
       Log.error('Logged in but cookie is missing, try log out.');
       UserSetting.clear();
+    } else {
+      userCookies = CookieUtil.parse2String(cookies);
     }
+
     Log.debug('init EHCookieManager success, cookies length:${cookies.length}', false);
   }
 
@@ -95,19 +91,22 @@ class EHCookieManager extends CookieManager {
   }
 
   Future<void> storeEhCookiesForAllUri(List<Cookie> cookies) async {
+    /// https://github.com/Ehviewer-Overhauled/Ehviewer/issues/873
+    cookies.removeWhere((cookie) => cookie.name == '__utmp');
+
+    cookies.removeWhere((cookie) => cookie.name == 'igneous' && cookie.value == 'mystery');
+
     /// host
     await Future.wait(
-      NetworkSetting.host2IPs.keys.map((host) => cookieJar.saveFromResponse(Uri.parse('https://$host'), cookies)),
-    );
-
-    /// ip
-    await Future.wait(
-      NetworkSetting.allIPs.map((ip) => cookieJar.saveFromResponse(Uri.parse('https://$ip'), cookies)),
+      NetworkSetting.allHostAndIPs.map((host) => cookieJar.saveFromResponse(Uri.parse('https://$host'), cookies)),
     );
 
     cookieJar.loadForRequest(Uri.parse(EHConsts.EXIndex)).then((v) {
       String newCookieStr = CookieUtil.parse2String(v);
-      userCookies = newCookieStr.isNotEmpty ? newCookieStr : userCookies;
+      if (newCookieStr.isNotEmpty && newCookieStr != userCookies) {
+        userCookies = newCookieStr;
+        Log.debug('New cookie: $userCookies');
+      }
     });
   }
 
@@ -116,7 +115,12 @@ class EHCookieManager extends CookieManager {
   }
 
   Future<void> removeAllCookies() async {
-    return cookieJar.deleteAll();
+    try {
+      await cookieJar.deleteAll();
+    } catch (e) {
+      Log.error('removeAllCookies error: $e');
+      Log.upload(e);
+    }
   }
 
   /// eh host -> save cookie for all eh hosts
@@ -127,7 +131,7 @@ class EHCookieManager extends CookieManager {
       return;
     }
 
-    if (NetworkSetting.host2IPs.containsKey(response.requestOptions.uri.host) || NetworkSetting.allIPs.contains(response.requestOptions.uri.host)) {
+    if (NetworkSetting.allHostAndIPs.contains(response.requestOptions.uri.host)) {
       await storeEhCookiesForAllUri(
         cookies.map((str) => Cookie.fromSetCookieValue(str)).map((cookie) => Cookie(cookie.name, cookie.value)).toList(),
       );

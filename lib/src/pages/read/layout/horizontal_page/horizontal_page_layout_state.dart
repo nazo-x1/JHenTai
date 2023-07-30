@@ -1,3 +1,1 @@
-import '../base/base_layout_state.dart';
-
-class HorizontalPageLayoutState extends BaseLayoutState {}
+class HorizontalPageLayoutState {}

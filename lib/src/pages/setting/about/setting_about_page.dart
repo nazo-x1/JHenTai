@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:jhentai/src/extension/widget_extension.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -15,8 +16,10 @@ class _SettingAboutPageState extends State<SettingAboutPage> {
   String packageName = '';
   String version = '';
   String buildNumber = '';
-  String author = 'JT <jiangtian616@qq.com>';
+  String author = 'JTMonster';
+  String telegram = 'https://t.me/+PindoE9yvIpmOWI9';
   String gitRepo = 'https://github.com/jiangtian616/JHenTai';
+  String helpPage = 'https://github.com/jiangtian616/JHenTai/wiki';
 
   @override
   void initState() {
@@ -45,8 +48,18 @@ class _SettingAboutPageState extends State<SettingAboutPage> {
             subtitle: SelectableText(gitRepo),
             onTap: () => launchUrlString(gitRepo, mode: LaunchMode.externalApplication),
           ),
+          ListTile(
+            title: const Text('Telegram'),
+            subtitle: Text('telegramHint'.tr + '\n' + telegram),
+            onTap: () => launchUrlString(telegram, mode: LaunchMode.externalApplication),
+          ),
+          ListTile(
+            title: Text('Q&A'.tr),
+            subtitle: SelectableText(helpPage),
+            onTap: () => launchUrlString(helpPage, mode: LaunchMode.externalApplication),
+          ),
         ],
-      ),
+      ).withListTileTheme(context),
     );
   }
 }

@@ -6,12 +6,9 @@ import 'package:jhentai/src/utils/eh_spider_parser.dart';
 import 'package:jhentai/src/widget/loading_state_indicator.dart';
 
 import '../../utils/log.dart';
-import '../base/base_page_logic.dart';
+import '../base/old_base_page_logic.dart';
 
-class RanklistPageLogic extends BasePageLogic {
-  @override
-  int get tabIndex => 3;
-
+class RanklistPageLogic extends OldBasePageLogic {
   @override
   final RanklistPageState state = RanklistPageState();
 
@@ -24,17 +21,17 @@ class RanklistPageLogic extends BasePageLogic {
     }
 
     state.ranklistType = newType;
-    super.clearAndRefresh();
+    super.handleClearAndRefresh();
   }
 
   @override
   Future<List<dynamic>> getGallerysAndPageInfoByPage(int pageIndex) async {
-    Log.info('Get ranklist data, type:${state.ranklistType.name}, pageIndex:$pageIndex', false);
+    Log.info('Get ranklist data, type:${state.ranklistType.name}, pageIndex:$pageIndex');
 
     return await EHRequest.requestRanklistPage(
       ranklistType: state.ranklistType,
       pageNo: pageIndex,
-      parser: EHSpiderParser.galleryPage2GalleryListAndPageInfo,
+      parser: EHSpiderParser.ranklistPage2GalleryPageInfo,
     );
   }
 }

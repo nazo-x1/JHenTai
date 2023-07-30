@@ -10,10 +10,11 @@ import 'package:jhentai/src/pages/layout/mobile_v2/notification/tap_menu_button_
 import 'package:jhentai/src/pages/search/quick_search/quick_search_page.dart';
 import 'package:jhentai/src/pages/setting/setting_page.dart';
 import 'package:jhentai/src/routes/routes.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
 import 'package:jhentai/src/setting/user_setting.dart';
 import 'package:jhentai/src/utils/route_util.dart';
-import '../../../widget/log_out_dialog.dart';
+import '../../../setting/preference_setting.dart';
+import '../../../widget/eh_log_out_dialog.dart';
+import 'notification/tap_tab_bat_button_notification.dart';
 
 class MobileLayoutPageV2 extends StatelessWidget {
   final MobileLayoutPageV2Logic logic = Get.put(MobileLayoutPageV2Logic(), permanent: true);
@@ -23,22 +24,21 @@ class MobileLayoutPageV2 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScrollConfiguration(
-      behavior: UIConfig.behaviorWithScrollBar,
-      child: Obx(
-        () => Scaffold(
-          key: MobileLayoutPageV2State.scaffoldKey,
-          drawer: buildLeftDrawer(),
-          endDrawer: buildRightDrawer(),
-          endDrawerEnableOpenDragGesture: StyleSetting.enableQuickSearchDrawerGesture.isTrue,
-          body: buildBody(),
-          bottomNavigationBar: StyleSetting.hideBottomBar.isTrue ? null : buildBottomNavigationBar(context),
-        ),
+    return Obx(
+      () => Scaffold(
+        key: MobileLayoutPageV2State.scaffoldKey,
+        drawerEdgeDragWidth: PreferenceSetting.drawerGestureEdgeWidth.value.toDouble(),
+        drawer: buildLeftDrawer(context),
+        drawerEnableOpenDragGesture: PreferenceSetting.enableLeftMenuDrawerGesture.isTrue,
+        endDrawer: buildRightDrawer(),
+        endDrawerEnableOpenDragGesture: PreferenceSetting.enableQuickSearchDrawerGesture.isTrue,
+        body: buildBody(),
+        bottomNavigationBar: PreferenceSetting.hideBottomBar.isTrue ? null : buildBottomNavigationBar(context),
       ),
     );
   }
 
-  Widget buildLeftDrawer() {
+  Widget buildLeftDrawer(BuildContext context) {
     return Drawer(
       width: 278,
       child: GetBuilder<MobileLayoutPageV2Logic>(
@@ -48,21 +48,28 @@ class MobileLayoutPageV2 extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const EHUserAvatar(),
-              ...state.icons
-                  .mapIndexed(
-                    (index, icon) => ListTile(
+              Expanded(
+                child: ScrollConfiguration(
+                  behavior: UIConfig.leftDrawerPhysicsBehaviour,
+                  child: ListView.builder(
+                    key: const PageStorageKey('leftDrawer'),
+                    controller: state.scrollController,
+                    itemCount: state.icons.length,
+                    cacheExtent: 1000,
+                    itemBuilder: (context, index) => ListTile(
                       dense: true,
-                      title: Text(state.icons[index].name.tr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      title: Text(state.icons[index].name.name.tr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       selected: state.selectedDrawerTabIndex == index,
-                      selectedTileColor: Get.theme.colorScheme.primaryContainer,
+                      selectedTileColor: UIConfig.mobileDrawerSelectedTileColor(context),
                       leading: state.icons[index].unselectedIcon,
                       shape: const RoundedRectangleBorder(
                         borderRadius: BorderRadiusDirectional.only(topEnd: Radius.circular(32), bottomEnd: Radius.circular(32)),
                       ),
                       onTap: () => logic.handleTapTabBarButton(index),
                     ).marginOnly(right: 8, top: 2),
-                  )
-                  .toList()
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -93,19 +100,25 @@ class MobileLayoutPageV2 extends StatelessWidget {
   }
 
   Widget buildBody() {
-    return NotificationListener<TapMenuButtonNotification>(
-      child: GetBuilder<MobileLayoutPageV2Logic>(
-        id: logic.bodyId,
-        builder: (_) => Stack(
-          children: [
-            Offstage(offstage: state.selectedNavigationIndex != 0, child: buildHomeBody()),
-            Offstage(offstage: state.selectedNavigationIndex != 1, child: const DownloadPage()),
-            Offstage(offstage: state.selectedNavigationIndex != 2, child: const SettingPage()),
-          ],
+    return NotificationListener<TapTabBarButtonNotification>(
+      child: NotificationListener<TapMenuButtonNotification>(
+        child: GetBuilder<MobileLayoutPageV2Logic>(
+          id: logic.bodyId,
+          builder: (_) => Stack(
+            children: [
+              Offstage(offstage: state.selectedNavigationIndex != 0, child: buildHomeBody()),
+              Offstage(offstage: state.selectedNavigationIndex != 1, child: const DownloadPage()),
+              Offstage(offstage: state.selectedNavigationIndex != 2, child: const SettingPage()),
+            ],
+          ),
         ),
+        onNotification: (_) {
+          MobileLayoutPageV2State.scaffoldKey.currentState?.openDrawer();
+          return true;
+        },
       ),
-      onNotification: (_) {
-        MobileLayoutPageV2State.scaffoldKey.currentState?.openDrawer();
+      onNotification: (notification) {
+        logic.handleTapTabBarButtonByRouteName(notification.routeName);
         return true;
       },
     );
@@ -132,28 +145,29 @@ class EHUserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       height: 120,
+      alignment: Alignment.center,
       child: Obx(
-        () => Align(
-          child: ListTile(
-            leading: GestureDetector(
-              child: CircleAvatar(
-                radius: 32,
-                backgroundColor: Colors.grey.shade300,
-                foregroundImage: UserSetting.avatarImgUrl.value != null ? ExtendedNetworkImageProvider(UserSetting.avatarImgUrl.value!) : null,
-                child: Icon(UserSetting.hasLoggedIn() ? Icons.face_retouching_natural : Icons.face, color: Colors.grey.withOpacity(0.8), size: 32),
-              ),
-              onTap: () {
-                if (!UserSetting.hasLoggedIn()) {
-                  toRoute(Routes.login);
-                  return;
-                }
-                Get.dialog(const LogoutDialog());
-              },
+        () => ListTile(
+          leading: GestureDetector(
+            child: CircleAvatar(
+              radius: 32,
+              backgroundColor: UIConfig.loginAvatarBackGroundColor(context),
+              foregroundImage:
+                  UserSetting.avatarImgUrl.value != null ? ExtendedNetworkImageProvider(UserSetting.avatarImgUrl.value!, cache: true) : null,
+              child: Icon(UserSetting.hasLoggedIn() ? Icons.face_retouching_natural : Icons.face,
+                  color: UIConfig.loginAvatarForeGroundColor(context), size: 32),
             ),
-            title: Text(UserSetting.hasLoggedIn() ? UserSetting.userName.value! : ''),
           ),
+          title: Text(UserSetting.nickName.value ?? UserSetting.userName.value ?? 'tap2Login'.tr),
+          onTap: () {
+            if (!UserSetting.hasLoggedIn()) {
+              toRoute(Routes.login);
+              return;
+            }
+            Get.dialog(const LogoutDialog());
+          },
         ),
       ),
     );

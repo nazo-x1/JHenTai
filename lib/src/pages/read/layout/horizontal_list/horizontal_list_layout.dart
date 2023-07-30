@@ -17,7 +17,6 @@ class HorizontalListLayout extends BaseLayout {
   @override
   final HorizontalListLayoutLogic logic = Get.put<HorizontalListLayoutLogic>(HorizontalListLayoutLogic(), permanent: true);
 
-  @override
   final HorizontalListLayoutState state = Get.find<HorizontalListLayoutLogic>().state;
 
   @override
@@ -27,23 +26,25 @@ class HorizontalListLayout extends BaseLayout {
       itemCount: 1,
       builder: (_, __) => PhotoViewGalleryPageOptions.customChild(
         controller: state.photoViewController,
-        scaleStateController: state.photoViewScaleStateController,
-        basePosition: state.scalePosition,
-        onScaleEnd: logic.onScaleEnd,
+        initialScale: 1.0,
+        minScale: 1.0,
+        maxScale: 2.5,
+        scaleStateCycle: ReadSetting.enableDoubleTapToScaleUp.isTrue ? logic.scaleStateCycle : null,
+        enableTapDragZoom: ReadSetting.enableTapDragToScaleUp.isTrue,
         child: EHWheelSpeedControllerForReadPage(
           scrollController: state.itemScrollController,
           child: EHScrollablePositionedList.separated(
             scrollDirection: Axis.horizontal,
-            reverse: ReadSetting.readDirection.value == ReadDirection.right2left,
+            reverse: ReadSetting.isInRight2LeftDirection,
             physics: const ClampingScrollPhysics(),
-            minCacheExtent: readPageState.readPageInfo.mode == ReadMode.online ? ReadSetting.preloadDistance * screenHeight * 1 : 8 * screenHeight,
+            minCacheExtent: readPageState.readPageInfo.mode == ReadMode.online ? ReadSetting.preloadDistance * screenHeight * 1 : 3 * fullScreenWidth,
             initialScrollIndex: readPageState.readPageInfo.initialIndex,
             itemCount: readPageState.readPageInfo.pageCount,
             itemScrollController: state.itemScrollController,
             itemPositionsListener: state.itemPositionsListener,
             itemBuilder: (context, index) =>
                 readPageState.readPageInfo.mode == ReadMode.online ? buildItemInOnlineMode(context, index) : buildItemInLocalMode(context, index),
-            separatorBuilder: (_, __) => const VerticalDivider(width: 6),
+            separatorBuilder: (_, __) => Obx(() => SizedBox(width: ReadSetting.imageSpace.value.toDouble())),
           ),
         ),
       ),

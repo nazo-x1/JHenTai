@@ -1,22 +1,30 @@
 import 'dart:async';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:jhentai/src/config/sentry_config.dart';
+import 'package:jhentai/src/service/app_update_service.dart';
 import 'package:jhentai/src/service/archive_download_service.dart';
 import 'package:jhentai/src/service/history_service.dart';
 import 'package:jhentai/src/service/gallery_download_service.dart';
 import 'package:jhentai/src/service/local_gallery_service.dart';
 import 'package:jhentai/src/service/quick_search_service.dart';
 import 'package:jhentai/src/service/relogin_service.dart';
+import 'package:jhentai/src/service/search_history_service.dart';
+import 'package:jhentai/src/service/super_resolution_service.dart';
 import 'package:jhentai/src/service/volume_service.dart';
 import 'package:jhentai/src/service/windows_service.dart';
+import 'package:jhentai/src/setting/frame_rate_setting.dart';
 import 'package:jhentai/src/setting/mouse_setting.dart';
+import 'package:jhentai/src/setting/my_tags_setting.dart';
 import 'package:jhentai/src/setting/network_setting.dart';
-import 'package:jhentai/src/widget/app_state_listener.dart';
+import 'package:jhentai/src/setting/preference_setting.dart';
+import 'package:jhentai/src/setting/super_resolution_setting.dart';
+import 'package:jhentai/src/widget/app_manager.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'exception/upload_exception.dart';
 import 'package:jhentai/src/l18n/locale_text.dart';
@@ -57,9 +65,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       title: 'JHenTai',
-      theme: ThemeConfig.light,
-      darkTheme: ThemeConfig.dark,
       themeMode: StyleSetting.themeMode.value,
+      theme: ThemeConfig.generateThemeData(StyleSetting.lightThemeColor.value, Brightness.light),
+      darkTheme: ThemeConfig.generateThemeData(StyleSetting.darkThemeColor.value, Brightness.dark),
 
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
@@ -70,34 +78,37 @@ class MyApp extends StatelessWidget {
         Locale('en', 'US'),
         Locale('zh', 'CN'),
         Locale('zh', 'TW'),
+        Locale('ko', 'KR'),
+        Locale('pt', 'BR'),
       ],
-      locale: StyleSetting.locale.value,
+      locale: PreferenceSetting.locale.value,
       fallbackLocale: const Locale('en', 'US'),
       translations: LocaleText(),
 
       getPages: Routes.pages,
-      initialRoute: SecuritySetting.enableBiometricLock.isTrue ? Routes.lock : Routes.home,
+      initialRoute: SecuritySetting.enablePasswordAuth.isTrue || SecuritySetting.enableBiometricAuth.isTrue ? Routes.lock : Routes.home,
       navigatorObservers: [GetXRouterObserver(), SentryNavigatorObserver()],
-      builder: (context, child) => AppStateListener(child: child!),
+      builder: (context, child) => AppManager(child: child!),
 
       /// enable swipe back feature
-      popGesture: true,
+      popGesture: PreferenceSetting.enableSwipeBackGesture.isTrue,
       onReady: onReady,
     );
   }
 }
 
 Future<void> init() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     systemNavigationBarColor: Colors.transparent,
     systemNavigationBarDividerColor: Colors.transparent,
     statusBarColor: Colors.transparent,
   ));
 
-  FlutterError.onError = (FlutterErrorDetails details) {
-    Log.error(details.exception, null, details.stack);
-    Log.upload(details.exception, stackTrace: details.stack);
-  };
+  if (SentryConfig.dsn.isNotEmpty && !kDebugMode) {
+    await SentryFlutter.init((options) => options.dsn = SentryConfig.dsn);
+  }
 
   PlatformDispatcher.instance.onError = (error, stack) {
     if (error is NotUploadException) {
@@ -109,28 +120,34 @@ Future<void> init() async {
     return false;
   };
 
-  WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (FlutterErrorDetails details) {
+    if (details.exception is NotUploadException) {
+      return;
+    }
 
-  if (SentryConfig.dsn.isNotEmpty && !kDebugMode) {
-    await SentryFlutter.init((options) => options.dsn = SentryConfig.dsn);
-  }
+    Log.error(details.exception, null, details.stack);
+    Log.upload(details.exception, stackTrace: details.stack);
+  };
+
+  await FrameRateSetting.init();
 
   await PathSetting.init();
+  AppUpdateService.init();
   await StorageService.init();
 
+  StyleSetting.init();
   NetworkSetting.init();
   await AdvancedSetting.init();
   await SecuritySetting.init();
   await Log.init();
   UserSetting.init();
-  TagTranslationService.init();
-  StyleSetting.init();
+
   TabBarSetting.init();
   WindowService.init();
 
   SiteSetting.init();
   FavoriteSetting.init();
-
+  MyTagsSetting.init();
   EHSetting.init();
 
   await EHCookieManager.init();
@@ -140,25 +157,32 @@ Future<void> init() async {
 
   DownloadSetting.init();
   await EHRequest.init();
+  
+  PreferenceSetting.init();
+  
+  TagTranslationService.init();
 
   MouseSetting.init();
 
   QuickSearchService.init();
 
   HistoryService.init();
+  SearchHistoryService.init();
   GalleryDownloadService.init();
+  ArchiveDownloadService.init();
+  LocalGalleryService.init();
+  SuperResolutionSetting.init();
+  SuperResolutionService.init();
 }
 
 Future<void> onReady() async {
   FavoriteSetting.refresh();
   SiteSetting.refresh();
   EHSetting.refresh();
+  MyTagsSetting.refreshOnlineTagSets();
 
   ReadSetting.init();
-
-  ArchiveDownloadService.init();
-  LocalGalleryService.init();
-
+  
   VolumeService.init();
 }
 
@@ -168,11 +192,16 @@ void _doForDesktop() {
   }
 
   doWhenWindowReady(() {
-    appWindow.title = 'JHenTai';
-    appWindow.size = const Size(1280, 720);
+    WindowService windowService = Get.find();
 
-    if (Get.find<StorageService>().read('windowMaximize') == true) {
+    appWindow.title = 'JHenTai';
+    appWindow.size = Size(windowService.windowWidth, windowService.windowHeight);
+    if (windowService.isMaximized) {
       appWindow.maximize();
+    }
+    // https://github.com/bitsdojo/bitsdojo_window/issues/193
+    else if (GetPlatform.isWindows && kDebugMode) {
+      WidgetsBinding.instance.scheduleFrameCallback((_) => appWindow.size += const Offset(1, 0));
     }
 
     appWindow.show();

@@ -5,12 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:jhentai/src/pages/layout/desktop/desktop_layout_page.dart';
 import 'package:jhentai/src/pages/layout/mobile_v2/mobile_layout_page_v2.dart';
-import 'package:jhentai/src/pages/layout/tablet/tablet_layout_page.dart';
 import 'package:jhentai/src/pages/layout/tablet_v2/tablet_layout_page_v2.dart';
-import 'package:jhentai/src/setting/security_setting.dart';
 import 'package:jhentai/src/setting/style_setting.dart';
+import 'package:jhentai/src/setting/user_setting.dart';
+import 'package:jhentai/src/utils/convert_util.dart';
 import 'package:jhentai/src/utils/log.dart';
 import 'package:jhentai/src/utils/toast_util.dart';
+import 'package:jhentai/src/utils/version_util.dart';
 import 'package:jhentai/src/widget/will_pop_interceptor.dart';
 import 'package:jhentai/src/widget/window_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -18,18 +19,20 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:retry/retry.dart';
 
 import '../consts/eh_consts.dart';
+import '../mixin/login_required_logic_mixin.dart';
 import '../model/jh_layout.dart';
 import '../network/eh_request.dart';
 import '../routes/routes.dart';
 import '../service/storage_service.dart';
+import '../service/windows_service.dart';
 import '../setting/advanced_setting.dart';
 import '../utils/eh_spider_parser.dart';
 import '../utils/route_util.dart';
 import '../utils/screen_size_util.dart';
 import '../utils/snack_util.dart';
-import '../widget/app_state_listener.dart';
+import '../utils/string_uril.dart';
+import '../widget/app_manager.dart';
 import '../widget/update_dialog.dart';
-import 'layout/mobile/mobile_layout_page.dart';
 
 const int left = 1;
 const int right = 2;
@@ -48,8 +51,9 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with LoginRequiredMixin {
   final StorageService storageService = Get.find();
+  final WindowService windowService = Get.find<WindowService>();
 
   StreamSubscription? _intentDataStreamSubscription;
   String? _lastDetectedUrl;
@@ -62,7 +66,7 @@ class _HomePageState extends State<HomePage> {
     _checkUpdate();
     _handleUrlInClipBoard();
 
-    AppStateListener.registerDidChangeAppLifecycleStateCallback(resumeAndHandleUrlInClipBoard);
+    AppManager.registerDidChangeAppLifecycleStateCallback(resumeAndHandleUrlInClipBoard);
   }
 
   @override
@@ -79,31 +83,23 @@ class _HomePageState extends State<HomePage> {
         child: LayoutBuilder(
           builder: (_, __) => Obx(
             () {
-              if (StyleSetting.layout.value == LayoutMode.mobileV2) {
+              windowService.handleWindowResized();
+
+              if (StyleSetting.layout.value == LayoutMode.mobileV2 || StyleSetting.layout.value == LayoutMode.mobile) {
                 StyleSetting.actualLayout = LayoutMode.mobileV2;
                 return MobileLayoutPageV2();
               }
 
-              if (StyleSetting.layout.value == LayoutMode.mobile) {
-                StyleSetting.actualLayout = LayoutMode.mobile;
-                return MobileLayoutPage();
-              }
-
-              /// Device width is under 600, degrade to mobile layout.
+              /// Device width is under 600, degrade to mobileV2 layout.
               if (fullScreenWidth < 600) {
-                StyleSetting.actualLayout = StyleSetting.layout.value == LayoutMode.tablet ? LayoutMode.mobile : LayoutMode.mobileV2;
+                StyleSetting.actualLayout = LayoutMode.mobileV2;
                 untilRoute2BlankPage();
-                return StyleSetting.layout.value == LayoutMode.tablet ? MobileLayoutPage() : MobileLayoutPageV2();
+                return MobileLayoutPageV2();
               }
 
-              if (StyleSetting.layout.value == LayoutMode.tablet) {
-                StyleSetting.actualLayout = LayoutMode.tablet;
-                return const TabletLayoutPage();
-              }
-
-              if (StyleSetting.layout.value == LayoutMode.tabletV2) {
+              if (StyleSetting.layout.value == LayoutMode.tabletV2 || StyleSetting.layout.value == LayoutMode.tablet) {
                 StyleSetting.actualLayout = LayoutMode.tabletV2;
-                return const TabletLayoutPageV2();
+                return TabletLayoutPageV2();
               }
 
               StyleSetting.actualLayout = LayoutMode.desktop;
@@ -155,7 +151,7 @@ class _HomePageState extends State<HomePage> {
     String currentVersion = 'v${packageInfo.version}'.trim();
     Log.info('Latest version:[$latestVersion], current version: [$currentVersion]');
 
-    if (latestVersion == currentVersion) {
+    if (compareVersion(currentVersion, latestVersion) >= 0) {
       return;
     }
 
@@ -172,10 +168,17 @@ class _HomePageState extends State<HomePage> {
 
     ReceiveSharingIntent.getInitialText().then(
       (String? url) {
-        if (url != null) {
+        if (isEmptyOrNull(url)) {
+          return;
+        }
+
+        Match? match = RegExp(r'https://e[-x]hentai\.org/g/\S+').firstMatch(url!);
+        if (match == null) {
+          toast('Invalid jump link', isShort: false);
+        } else {
           toRoute(
             Routes.details,
-            arguments: {'galleryUrl': url},
+            arguments: {'gid': parseGalleryUrl2Gid(url), 'galleryUrl': url},
             offAllBefore: false,
             preventDuplicates: false,
           );
@@ -184,12 +187,19 @@ class _HomePageState extends State<HomePage> {
     );
 
     _intentDataStreamSubscription = ReceiveSharingIntent.getTextStream().listen(
-      (String url) => toRoute(
-        Routes.details,
-        arguments: {'galleryUrl': url},
-        offAllBefore: false,
-        preventDuplicates: false,
-      ),
+      (String url) {
+        Match? match = RegExp(r'https://e[-x]hentai\.org/g/\S+').firstMatch(url);
+        if (match == null) {
+          toast('Invalid jump link', isShort: false);
+        } else {
+          toRoute(
+            Routes.details,
+            arguments: {'gid': parseGalleryUrl2Gid(url), 'galleryUrl': url},
+            offAllBefore: false,
+            preventDuplicates: false,
+          );
+        }
+      },
       onError: (e) {
         Log.error('ReceiveSharingIntent Error!', e);
         Log.upload(e);
@@ -203,25 +213,31 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    String text = await FlutterClipboard.paste();
-    if (!text.startsWith('${EHConsts.EHIndex}/g') && !text.startsWith('${EHConsts.EXIndex}/g')) {
+    Match? match = RegExp(r'https://e[-x]hentai\.org/g/\S+').firstMatch(await FlutterClipboard.paste());
+    if (match == null) {
       return;
     }
+
+    String url = match.group(0)!;
 
     /// show snack only once
-    if (text == _lastDetectedUrl) {
+    if (url == _lastDetectedUrl) {
       return;
     }
 
-    _lastDetectedUrl = text;
+    _lastDetectedUrl = url;
 
     snack(
       'galleryUrlDetected'.tr,
-      '${'galleryUrlDetectedHint'.tr}: $text',
-      onTap: (_) {
+      '${'galleryUrlDetectedHint'.tr}: $url',
+      onPressed: () {
+        if (url.startsWith('${EHConsts.EXIndex}/g') && !UserSetting.hasLoggedIn()) {
+          showLoginToast();
+          return;
+        }
         toRoute(
           Routes.details,
-          arguments: {'galleryUrl': text},
+          arguments: {'gid': parseGalleryUrl2Gid(url), 'galleryUrl': url},
           offAllBefore: false,
           preventDuplicates: false,
         );

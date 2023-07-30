@@ -6,14 +6,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
-import '../../../../model/gallery_image.dart';
 import '../../../../setting/read_setting.dart';
 import '../../../../utils/screen_size_util.dart';
 import '../base/base_layout_logic.dart';
 import 'horizontal_list_layout_state.dart';
 
 class HorizontalListLayoutLogic extends BaseLayoutLogic {
-  @override
   HorizontalListLayoutState state = HorizontalListLayoutState();
 
   @override
@@ -26,19 +24,19 @@ class HorizontalListLayoutLogic extends BaseLayoutLogic {
 
   @override
   void toLeft() {
-    if (ReadSetting.readDirection.value == ReadDirection.left2right) {
-      toPrev();
-    } else {
+    if (ReadSetting.isInRight2LeftDirection) {
       toNext();
+    } else {
+      toPrev();
     }
   }
 
   @override
   void toRight() {
-    if (ReadSetting.readDirection.value == ReadDirection.left2right) {
-      toNext();
-    } else {
+    if (ReadSetting.isInRight2LeftDirection) {
       toPrev();
+    } else {
+      toNext();
     }
   }
 
@@ -78,20 +76,21 @@ class HorizontalListLayoutLogic extends BaseLayoutLogic {
 
   /// jump to a certain image
   @override
-  void jump2PageIndex(int imageIndex) {
+  void jump2ImageIndex(int imageIndex) {
+    super.jump2ImageIndex(imageIndex);
+
     /// Method [jumpTo] leads to redrawing, so wo use scrollTo
     state.itemScrollController.scrollTo(index: imageIndex, duration: const Duration(milliseconds: 1));
-    super.jump2PageIndex(imageIndex);
   }
 
   /// scroll to a certain image
   @override
-  void scroll2PageIndex(int imageIndex, [Duration? duration]) {
+  void scroll2ImageIndex(int imageIndex, [Duration? duration]) {
     state.itemScrollController.scrollTo(
       index: imageIndex,
       duration: duration ?? const Duration(milliseconds: 200),
     );
-    super.scroll2PageIndex(imageIndex, duration);
+    super.scroll2ImageIndex(imageIndex, duration);
   }
 
   /// scroll or jump until one image in viewport currently reach top
@@ -102,7 +101,7 @@ class HorizontalListLayoutLogic extends BaseLayoutLogic {
     }
 
     int targetIndex = firstPosition.itemLeadingEdge < 0 ? firstPosition.index : firstPosition.index - 1;
-    toPageIndex(max(targetIndex, 0));
+    toImageIndex(max(targetIndex, 0));
   }
 
   /// scroll or jump until last image in viewport currently reach top
@@ -112,7 +111,7 @@ class HorizontalListLayoutLogic extends BaseLayoutLogic {
       return;
     }
 
-    toPageIndex(min(firstPosition.index + 1, readPageState.readPageInfo.pageCount));
+    toImageIndex(min(firstPosition.index + 1, readPageState.readPageInfo.pageCount));
   }
 
   void _toPrevScreen() {
@@ -153,7 +152,7 @@ class HorizontalListLayoutLogic extends BaseLayoutLogic {
   }
 
   void _enterAutoModeByScroll() {
-    int restPageCount = readPageState.readPageInfo.pageCount - readPageState.readPageInfo.currentIndex - 1;
+    int restPageCount = readPageState.readPageInfo.pageCount - readPageState.readPageInfo.currentImageIndex - 1;
     double offset = restPageCount * screenHeight;
     double totalTime = restPageCount * ReadSetting.autoModeInterval.value;
 
@@ -174,7 +173,7 @@ class HorizontalListLayoutLogic extends BaseLayoutLogic {
       Duration(milliseconds: (ReadSetting.autoModeInterval.value * 1000).toInt()),
       (_) {
         /// changed read setting
-        if (ReadSetting.readDirection.value == ReadDirection.top2bottom || ReadSetting.enableContinuousHorizontalScroll.isFalse) {
+        if (ReadSetting.readDirection.value != ReadDirection.left2rightList && ReadSetting.readDirection.value != ReadDirection.right2leftList) {
           Get.engine.addPostFrameCallback((_) {
             readPageLogic.closeAutoMode();
           });
@@ -223,16 +222,18 @@ class HorizontalListLayoutLogic extends BaseLayoutLogic {
   }
 
   @override
-  Size getPlaceHolderSize() {
-    /// 6 is the width of divider
-    return Size((fullScreenWidth - 6) / 2, double.infinity);
+  Size getPlaceHolderSize(int imageIndex) {
+    if (readPageState.imageContainerSizes[imageIndex] != null) {
+      return readPageState.imageContainerSizes[imageIndex]!;
+    }
+    return Size((fullScreenWidth - ReadSetting.imageSpace.value) / 2, double.infinity);
   }
 
   @override
-  FittedSizes getImageFittedSize(GalleryImage image) {
+  FittedSizes getImageFittedSize(Size imageSize) {
     return applyBoxFit(
       BoxFit.contain,
-      Size(image.width, image.height),
+      Size(imageSize.width, imageSize.height),
       Size(double.infinity, screenHeight),
     );
   }

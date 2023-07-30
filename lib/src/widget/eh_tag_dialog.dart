@@ -1,12 +1,17 @@
+import 'package:clipboard/clipboard.dart';
 import 'package:dio/dio.dart';
-import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:get/get.dart';
+import 'package:jhentai/src/exception/eh_exception.dart';
 import 'package:jhentai/src/mixin/login_required_logic_mixin.dart';
 import 'package:jhentai/src/routes/routes.dart';
+import 'package:jhentai/src/setting/my_tags_setting.dart';
+import 'package:jhentai/src/setting/preference_setting.dart';
+import 'package:jhentai/src/utils/eh_spider_parser.dart';
 import 'package:jhentai/src/utils/route_util.dart';
 import 'package:jhentai/src/utils/toast_util.dart';
+import 'package:jhentai/src/widget/eh_warning_image.dart';
 import 'package:jhentai/src/widget/eh_wheel_speed_controller.dart';
 import 'package:like_button/like_button.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -17,6 +22,7 @@ import '../network/eh_request.dart';
 import '../setting/user_setting.dart';
 import '../utils/log.dart';
 import '../utils/snack_util.dart';
+import '../utils/string_uril.dart';
 import 'loading_state_indicator.dart';
 
 class EHTagDialog extends StatefulWidget {
@@ -54,7 +60,10 @@ class _EHTagDialogState extends State<EHTagDialog> with LoginRequiredMixin {
   @override
   Widget build(BuildContext context) {
     return SimpleDialog(
-      title: Text('${widget.tagData.namespace}:${widget.tagData.key}'),
+      title: GestureDetector(
+        child: Text('${widget.tagData.namespace}:${widget.tagData.key}'),
+        onTap: () => FlutterClipboard.copy('${widget.tagData.namespace}:"${widget.tagData.key}"').then((_) => toast('hasCopiedToClipboard'.tr)),
+      ),
       contentPadding: const EdgeInsets.only(left: 12, right: 12, bottom: 12, top: 12),
       children: [
         if (widget.tagData.tagName != null) ...[
@@ -68,7 +77,8 @@ class _EHTagDialogState extends State<EHTagDialog> with LoginRequiredMixin {
             _buildVoteDownButton(),
             _buildWatchTagButton(),
             _buildHideTagButton(),
-            _buildGoToTagSetsButton(),
+            _buildFilterLocalTagButton(),
+            if (UserSetting.hasLoggedIn()) _buildGoToTagSetsButton(),
           ],
         ).marginOnly(top: 12),
       ],
@@ -99,7 +109,10 @@ class _EHTagDialogState extends State<EHTagDialog> with LoginRequiredMixin {
               return null;
             }
             return Center(
-              child: ExtendedImage.network(element.attributes['src']!).marginSymmetric(vertical: 20),
+              child: EHWarningImage(
+                warning: PreferenceSetting.showR18GImageDirectly.isFalse && element.attributes['nsfw'] == 'R18G',
+                src: element.attributes['src']!,
+              ).marginSymmetric(vertical: 20),
             );
           },
         ).paddingSymmetric(horizontal: 12),
@@ -112,7 +125,7 @@ class _EHTagDialogState extends State<EHTagDialog> with LoginRequiredMixin {
       likeBuilder: (bool liked) => Icon(
         Icons.thumb_up,
         size: UIConfig.tagDialogButtonSize,
-        color: liked ? Colors.green : UIConfig.tagDialogButtonColor,
+        color: liked ? UIConfig.tagDialogLikedButtonColor(context) : UIConfig.tagDialogButtonColor(context),
       ),
       onTap: (bool liked) => liked ? Future.value(true) : vote(isVotingUp: true),
     );
@@ -123,7 +136,7 @@ class _EHTagDialogState extends State<EHTagDialog> with LoginRequiredMixin {
       likeBuilder: (bool liked) => Icon(
         Icons.thumb_down,
         size: UIConfig.tagDialogButtonSize,
-        color: liked ? Colors.red : UIConfig.tagDialogButtonColor,
+        color: liked ? UIConfig.tagDialogLikedButtonColor(context) : UIConfig.tagDialogButtonColor(context),
       ),
       onTap: (bool liked) => liked ? Future.value(true) : vote(isVotingUp: false),
     );
@@ -131,10 +144,11 @@ class _EHTagDialogState extends State<EHTagDialog> with LoginRequiredMixin {
 
   Widget _buildWatchTagButton() {
     return LikeButton(
+      isLiked: MyTagsSetting.containWatchedOnlineLocalTag(widget.tagData),
       likeBuilder: (bool liked) => Icon(
         Icons.favorite,
         size: UIConfig.tagDialogButtonSize,
-        color: liked ? Colors.red : UIConfig.tagDialogButtonColor,
+        color: liked ? UIConfig.tagDialogLikedButtonColor(context) : UIConfig.tagDialogButtonColor(context),
       ),
       onTap: (bool liked) => liked ? Future.value(true) : addNewTagSet(true),
     );
@@ -142,12 +156,33 @@ class _EHTagDialogState extends State<EHTagDialog> with LoginRequiredMixin {
 
   Widget _buildHideTagButton() {
     return LikeButton(
+      isLiked: MyTagsSetting.containHiddenOnlineLocalTag(widget.tagData),
       likeBuilder: (bool liked) => Icon(
         Icons.visibility_off,
         size: UIConfig.tagDialogButtonSize,
-        color: liked ? Colors.red : UIConfig.tagDialogButtonColor,
+        color: liked ? UIConfig.tagDialogLikedButtonColor(context) : UIConfig.tagDialogButtonColor(context),
       ),
       onTap: (bool liked) => liked ? Future.value(true) : addNewTagSet(false),
+    );
+  }
+
+  Widget _buildFilterLocalTagButton() {
+    return LikeButton(
+      isLiked: MyTagsSetting.containLocalTag(widget.tagData),
+      likeBuilder: (bool liked) => Icon(
+        Icons.cancel_outlined,
+        size: UIConfig.tagDialogButtonSize,
+        color: liked ? UIConfig.tagDialogLikedButtonColor(context) : UIConfig.tagDialogButtonColor(context),
+      ),
+      onTap: (bool liked) {
+        if (liked) {
+          MyTagsSetting.removeLocalTagSet(widget.tagData);
+          return Future.value(false);
+        } else {
+          MyTagsSetting.addLocalTagSet(widget.tagData);
+          return Future.value(true);
+        }
+      },
     );
   }
 
@@ -156,9 +191,10 @@ class _EHTagDialogState extends State<EHTagDialog> with LoginRequiredMixin {
       likeBuilder: (_) => Icon(
         Icons.settings,
         size: UIConfig.tagDialogButtonSize,
-        color: UIConfig.tagDialogButtonColor,
+        color: UIConfig.tagDialogButtonColor(context),
       ),
       onTap: (_) async {
+        backRoute();
         toRoute(Routes.tagSets);
         return null;
       },
@@ -189,15 +225,16 @@ class _EHTagDialogState extends State<EHTagDialog> with LoginRequiredMixin {
   Future<void> _doVote({required bool isVotingUp}) async {
     Log.info('Vote for tag:${widget.tagData.key}, isVotingUp: $isVotingUp');
 
+    String? errMsg;
     try {
-      await EHRequest.voteTag(
+      errMsg = await EHRequest.voteTag(
         widget.gid,
         widget.token,
         UserSetting.ipbMemberId.value!,
         widget.apikey,
-        widget.tagData.namespace,
-        widget.tagData.key,
+        '${widget.tagData.namespace}:${widget.tagData.key}',
         isVotingUp,
+        parser: EHSpiderParser.voteTagResponse2ErrorMessage,
       );
     } on DioError catch (e) {
       if (isVotingUp) {
@@ -208,15 +245,29 @@ class _EHTagDialogState extends State<EHTagDialog> with LoginRequiredMixin {
       Log.error('voteTagFailed'.tr, e.message);
       snack('voteTagFailed'.tr, e.message);
       return;
+    } on EHException catch (e) {
+      if (isVotingUp) {
+        voteUpState = LoadingState.error;
+      } else {
+        voteDownState = LoadingState.error;
+      }
+      Log.error('voteTagFailed'.tr, e.message);
+      snack('voteTagFailed'.tr, e.message);
+      return;
     }
-
+    
     if (isVotingUp) {
       voteUpState = LoadingState.success;
     } else {
       voteDownState = LoadingState.success;
     }
-
-    toast('success'.tr);
+    
+    if (!isEmptyOrNull(errMsg)) {
+      snack('voteTagFailed'.tr, errMsg!, longDuration: true);
+      return;
+    } else {
+      toast('success'.tr);
+    }
   }
 
   Future<bool> addNewTagSet(bool watch) async {
@@ -249,11 +300,20 @@ class _EHTagDialogState extends State<EHTagDialog> with LoginRequiredMixin {
         tagWeight: 10,
         watch: watch,
         hidden: !watch,
+        parser: EHSpiderParser.addTagSetResponse2Result,
       );
     } on DioError catch (e) {
       Log.error('addNewTagSetFailed'.tr, e.message);
       toast('${'addNewTagSetFailed'.tr}: ${e.message}', isShort: false);
 
+      if (watch) {
+        addWatchedTagState = LoadingState.error;
+      } else {
+        addHiddenTagState = LoadingState.error;
+      }
+      return;
+    } on EHException catch (e) {
+      toast(e.message.tr, isShort: false);
       if (watch) {
         addWatchedTagState = LoadingState.error;
       } else {

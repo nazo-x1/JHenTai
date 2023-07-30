@@ -1,33 +1,35 @@
-import 'dart:math';
-
+import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:jhentai/src/extension/get_logic_extension.dart';
-import 'package:jhentai/src/model/jh_layout.dart';
+import 'package:jhentai/src/model/gallery_page.dart';
 import 'package:jhentai/src/model/search_config.dart';
-import 'package:jhentai/src/pages/layout/desktop/desktop_layout_page_logic.dart';
-import 'package:jhentai/src/utils/check_util.dart';
 import 'package:jhentai/src/service/storage_service.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
+import 'package:jhentai/src/setting/my_tags_setting.dart';
 import 'package:jhentai/src/widget/eh_search_config_dialog.dart';
 
+import '../../exception/eh_exception.dart';
 import '../../mixin/scroll_to_top_logic_mixin.dart';
+import '../../mixin/scroll_to_top_state_mixin.dart';
 import '../../model/gallery.dart';
+import '../../network/eh_request.dart';
 import '../../routes/routes.dart';
 import '../../service/tag_translation_service.dart';
 import '../../setting/user_setting.dart';
+import '../../utils/eh_spider_parser.dart';
 import '../../utils/log.dart';
 import '../../utils/route_util.dart';
 import '../../utils/snack_util.dart';
 import '../../utils/toast_util.dart';
-import '../../widget/jump_page_dialog.dart';
 import '../../widget/loading_state_indicator.dart';
 import 'base_page_state.dart';
 
 abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
-  @override
   BasePageState get state;
+
+  @override
+  Scroll2TopStateMixin get scroll2TopState => state;
 
   final String appBarId = 'appBarId';
   final String bodyId = 'bodyId';
@@ -40,19 +42,12 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
 
   bool get autoLoadNeedLogin => false;
 
-  /// used for desktop layout
-  int get tabIndex;
-
   final TagTranslationService tagTranslationService = Get.find();
   final StorageService storageService = Get.find();
 
   @override
   void onInit() {
     super.onInit();
-
-    if (Get.isRegistered<DesktopLayoutPageLogic>() && StyleSetting.actualLayout == LayoutMode.desktop) {
-      Get.find<DesktopLayoutPageLogic>().state.scrollControllers[tabIndex] = state.scrollController;
-    }
 
     if (useSearchConfig) {
       Map<String, dynamic>? map = storageService.read('searchConfig: $runtimeType');
@@ -75,7 +70,7 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
 
   /// pull-down
   Future<void> handlePullDown() async {
-    if (state.prevPageIndexToLoad == null) {
+    if (state.prevGid == null) {
       return handleRefresh();
     }
 
@@ -83,7 +78,7 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
   }
 
   /// not clear current data before refresh
-  /// updateId is for subclass to override
+  /// [updateId] is for subclass to override
   Future<void> handleRefresh({String? updateId}) async {
     if (state.refreshState == LoadingState.loading) {
       return;
@@ -92,30 +87,39 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
     state.refreshState = LoadingState.loading;
     updateSafely([refreshStateId]);
 
-    List<dynamic> gallerysAndPageInfo;
+    GalleryPageInfo galleryPage;
     try {
-      gallerysAndPageInfo = await getGallerysAndPageInfoByPage(0);
+      galleryPage = await getGalleryPage();
     } on DioError catch (e) {
       Log.error('refreshGalleryFailed'.tr, e.message);
-      snack('refreshGalleryFailed'.tr, e.message, longDuration: true, snackPosition: SnackPosition.BOTTOM);
+      snack('refreshGalleryFailed'.tr, e.message, longDuration: true);
+      state.refreshState = LoadingState.error;
+      updateSafely([refreshStateId]);
+      return;
+    } on EHException catch (e) {
+      Log.error('refreshGalleryFailed'.tr, e.message);
+      snack('refreshGalleryFailed'.tr, e.message, longDuration: true);
       state.refreshState = LoadingState.error;
       updateSafely([refreshStateId]);
       return;
     }
 
-    await translateGalleryTagsIfNeeded(gallerysAndPageInfo[0]);
+    handleGalleryByLocalTags(galleryPage.gallerys);
 
-    state.gallerys = gallerysAndPageInfo[0];
-    state.pageCount = gallerysAndPageInfo[1];
-    state.prevPageIndexToLoad = gallerysAndPageInfo[2];
-    state.nextPageIndexToLoad = gallerysAndPageInfo[3];
+    await translateGalleryTagsIfNeeded(galleryPage.gallerys);
+
+    state.gallerys = galleryPage.gallerys;
+    state.totalCount = galleryPage.totalCount;
+    state.prevGid = galleryPage.prevGid;
+    state.nextGid = galleryPage.nextGid;
+    state.favoriteSortOrder = galleryPage.favoriteSortOrder;
     state.galleryCollectionKey = UniqueKey();
 
     state.refreshState = LoadingState.idle;
-    if (state.pageCount == 0) {
+
+    if (state.nextGid == null && state.prevGid == null && state.gallerys.isEmpty) {
       state.loadingState = LoadingState.noData;
-      state.nextPageIndexToLoad = 0;
-    } else if (state.nextPageIndexToLoad == null) {
+    } else if (state.nextGid == null) {
       state.loadingState = LoadingState.noMore;
     } else {
       state.loadingState = LoadingState.idle;
@@ -126,15 +130,10 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
     } else {
       updateSafely();
     }
-
-    CheckUtil.build(
-      () => state.nextPageIndexToLoad != null || state.loadingState == LoadingState.noMore,
-      errorMsg: 'handleRefresh state.nextPageIndexToLoad == null!',
-    ).check();
   }
 
   /// clear current data first, then refresh
-  Future<void> clearAndRefresh() async {
+  Future<void> handleClearAndRefresh() async {
     if (state.loadingState == LoadingState.loading) {
       return;
     }
@@ -142,9 +141,11 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
     state.loadingState = LoadingState.loading;
 
     state.gallerys.clear();
-    state.prevPageIndexToLoad = null;
-    state.nextPageIndexToLoad = 0;
-    state.pageCount = -1;
+    state.prevGid = null;
+    state.nextGid = null;
+    state.seek = DateTime.now();
+    state.totalCount = null;
+    state.favoriteSortOrder = null;
 
     jump2Top();
 
@@ -153,7 +154,7 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
     loadMore(checkLoadingState: false);
   }
 
-  /// pull-down to load page before(after jumping to a certain page), after load, we must restore [state.loadingState]
+  /// pull-down to load page before(after jumping to a certain page), after load, we must restore [state.downloadState]
   /// to [prevState] in case of [prevState] is [noMore]
   Future<void> loadBefore() async {
     if (state.loadingState == LoadingState.loading) {
@@ -163,25 +164,36 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
     LoadingState prevState = state.loadingState;
     state.loadingState = LoadingState.loading;
 
-    List<dynamic> gallerysAndPageInfo;
+    GalleryPageInfo galleryPage;
     try {
-      gallerysAndPageInfo = await getGallerysAndPageInfoByPage(state.prevPageIndexToLoad!);
+      galleryPage = await getGalleryPage(prevGid: state.prevGid);
     } on DioError catch (e) {
       Log.error('getGallerysFailed'.tr, e.message);
-      snack('getGallerysFailed'.tr, e.message, longDuration: true, snackPosition: SnackPosition.BOTTOM);
+      snack('getGallerysFailed'.tr, e.message, longDuration: true);
+      state.loadingState = prevState;
+      updateSafely([loadingStateId]);
+      return;
+    } on EHException catch (e) {
+      Log.error('getGallerysFailed'.tr, e.message);
+      snack('getGallerysFailed'.tr, e.message, longDuration: true);
       state.loadingState = prevState;
       updateSafely([loadingStateId]);
       return;
     }
 
-    cleanDuplicateGallery(gallerysAndPageInfo[0] as List<Gallery>, state.gallerys);
-    await translateGalleryTagsIfNeeded(gallerysAndPageInfo[0]);
+    cleanDuplicateGallery(galleryPage.gallerys);
 
-    state.gallerys.insertAll(0, gallerysAndPageInfo[0]);
-    state.pageCount = gallerysAndPageInfo[1];
-    state.prevPageIndexToLoad = gallerysAndPageInfo[2];
+    handleGalleryByLocalTags(galleryPage.gallerys);
+
+    await translateGalleryTagsIfNeeded(galleryPage.gallerys);
+
+    state.gallerys.insertAll(0, galleryPage.gallerys);
+    state.totalCount = galleryPage.totalCount;
+    state.prevGid = galleryPage.prevGid;
+    state.favoriteSortOrder = galleryPage.favoriteSortOrder;
 
     state.loadingState = prevState;
+
     updateSafely();
   }
 
@@ -191,125 +203,114 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
       return;
     }
 
-    LoadingState prevState = state.loadingState;
     state.loadingState = LoadingState.loading;
+    updateSafely([loadingStateId]);
 
-    if (state.gallerys.isEmpty) {
-      /// for [CenterStatusIndicator]
-      updateSafely([bodyId]);
-    } else if (prevState == LoadingState.error || prevState == LoadingState.noData) {
-      /// for [LoadMoreIndicator]
-      updateSafely([loadingStateId]);
-    }
-
-    CheckUtil.build(
-      () => state.nextPageIndexToLoad != null,
-      errorMsg: 'state.nextPageIndexToLoad == null!',
-    ).onFailed(() {
-      Log.error('getGallerysFailed'.tr);
-      snack('getGallerysFailed'.tr, 'internalError'.tr, longDuration: true, snackPosition: SnackPosition.BOTTOM);
-      state.loadingState = LoadingState.error;
-      updateSafely([loadingStateId]);
-    }).check();
-
-    List<dynamic> gallerysAndPageInfo;
+    GalleryPageInfo galleryPage;
     try {
-      gallerysAndPageInfo = await getGallerysAndPageInfoByPage(state.nextPageIndexToLoad!);
+      galleryPage = await getGalleryPage(nextGid: state.nextGid);
     } on DioError catch (e) {
       Log.error('getGallerysFailed'.tr, e.message);
-      snack('getGallerysFailed'.tr, e.message, longDuration: true, snackPosition: SnackPosition.BOTTOM);
+      snack('getGallerysFailed'.tr, e.message, longDuration: true);
+      state.loadingState = LoadingState.error;
+      updateSafely([loadingStateId]);
+      return;
+    } on EHException catch (e) {
+      Log.error('getGallerysFailed'.tr, e.message);
+      snack('getGallerysFailed'.tr, e.message, longDuration: true);
       state.loadingState = LoadingState.error;
       updateSafely([loadingStateId]);
       return;
     }
 
-    cleanDuplicateGallery(gallerysAndPageInfo[0] as List<Gallery>, state.gallerys);
-    await translateGalleryTagsIfNeeded(gallerysAndPageInfo[0]);
+    cleanDuplicateGallery(galleryPage.gallerys);
 
-    state.gallerys.addAll(gallerysAndPageInfo[0]);
-    state.pageCount = gallerysAndPageInfo[1];
-    state.nextPageIndexToLoad = gallerysAndPageInfo[3];
+    handleGalleryByLocalTags(galleryPage.gallerys);
 
-    if (state.pageCount == 0) {
+    await translateGalleryTagsIfNeeded(galleryPage.gallerys);
+
+    state.gallerys.addAll(galleryPage.gallerys);
+    state.totalCount = galleryPage.totalCount;
+    state.nextGid = galleryPage.nextGid;
+    state.favoriteSortOrder = galleryPage.favoriteSortOrder;
+
+    if (state.nextGid == null && state.prevGid == null && state.gallerys.isEmpty) {
       state.loadingState = LoadingState.noData;
-      state.nextPageIndexToLoad = 0;
-    } else if (state.nextPageIndexToLoad == null) {
+    } else if (state.nextGid == null) {
       state.loadingState = LoadingState.noMore;
     } else {
       state.loadingState = LoadingState.idle;
     }
 
     updateSafely();
-
-    CheckUtil.build(
-      () => state.nextPageIndexToLoad != null || state.loadingState == LoadingState.noMore,
-      errorMsg: 'loadMore state.nextPageIndexToLoad == null!',
-    ).withUploadParam({
-      'state': state,
-      'gallerysAndPageInfo': gallerysAndPageInfo,
-    }).check(throwExceptionWhenFailed: false);
   }
 
-  Future<void> jumpPage(int pageIndex) async {
+  Future<void> jumpPage(DateTime dateTime) async {
     if (state.loadingState == LoadingState.loading) {
       return;
     }
 
+    Log.info('Jump page to $dateTime');
+
     state.gallerys.clear();
     state.loadingState = LoadingState.loading;
     updateSafely();
+
     state.scrollController.jumpTo(0);
 
-    pageIndex = max(pageIndex, 0);
-    pageIndex = min(pageIndex, state.pageCount - 1);
-    state.prevPageIndexToLoad = null;
-    state.nextPageIndexToLoad = 0;
-
-    List<dynamic> gallerysAndPageInfo;
+    GalleryPageInfo galleryPage;
     try {
-      gallerysAndPageInfo = await getGallerysAndPageInfoByPage(pageIndex);
+      galleryPage = await getGalleryPage(nextGid: state.nextGid, prevGid: state.prevGid, seek: dateTime);
     } on DioError catch (e) {
-      Log.error('refreshGalleryFailed'.tr, e.message);
-      snack('refreshGalleryFailed'.tr, e.message, longDuration: true, snackPosition: SnackPosition.BOTTOM);
+      Log.error('getGallerysFailed'.tr, e.message);
+      snack('getGallerysFailed'.tr, e.message, longDuration: true);
+      state.loadingState = LoadingState.error;
+      updateSafely([loadingStateId]);
+      return;
+    } on EHException catch (e) {
+      Log.error('getGallerysFailed'.tr, e.message);
+      snack('getGallerysFailed'.tr, e.message, longDuration: true);
       state.loadingState = LoadingState.error;
       updateSafely([loadingStateId]);
       return;
     }
 
-    await translateGalleryTagsIfNeeded(gallerysAndPageInfo[0]);
+    handleGalleryByLocalTags(galleryPage.gallerys);
 
-    state.gallerys.addAll(gallerysAndPageInfo[0]);
-    state.pageCount = gallerysAndPageInfo[1];
-    state.prevPageIndexToLoad = gallerysAndPageInfo[2];
-    state.nextPageIndexToLoad = gallerysAndPageInfo[3];
+    await translateGalleryTagsIfNeeded(galleryPage.gallerys);
 
-    if (state.pageCount == 0) {
+    state.gallerys = galleryPage.gallerys;
+    state.totalCount = galleryPage.totalCount;
+    state.prevGid = galleryPage.prevGid;
+    state.nextGid = galleryPage.nextGid;
+    state.favoriteSortOrder = galleryPage.favoriteSortOrder;
+    state.galleryCollectionKey = UniqueKey();
+
+    state.seek = dateTime;
+
+    if (state.nextGid == null && state.prevGid == null && state.gallerys.isEmpty) {
       state.loadingState = LoadingState.noData;
-      state.nextPageIndexToLoad = 0;
-    } else if (state.nextPageIndexToLoad == null) {
+    } else if (state.nextGid == null) {
       state.loadingState = LoadingState.noMore;
     } else {
       state.loadingState = LoadingState.idle;
     }
 
     updateSafely();
-
-    CheckUtil.build(
-      () => state.nextPageIndexToLoad != null || state.loadingState == LoadingState.noMore,
-      errorMsg: 'jumpPage state.nextPageIndexToLoad == null!',
-    ).check();
   }
 
   Future<void> handleTapJumpButton() async {
-    int? pageIndex = await Get.dialog(
-      JumpPageDialog(
-        totalPageNo: state.pageCount,
-        currentNo: state.nextPageIndexToLoad ?? state.pageCount,
-      ),
+    DateTime? dateTime = await showDatePicker(
+      context: Get.context!,
+      initialDate: state.seek,
+      currentDate: DateTime.now(),
+      firstDate: DateTime(2007),
+      lastDate: DateTime.now(),
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
     );
 
-    if (pageIndex != null) {
-      jumpPage(pageIndex);
+    if (dateTime != null) {
+      jumpPage(dateTime);
     }
   }
 
@@ -327,35 +328,68 @@ abstract class BasePageLogic extends GetxController with Scroll2TopLogicMixin {
 
     /// No need to save at search page
     if (useSearchConfig) {
-      storageService.write('searchConfig: $runtimeType', searchConfig.toJson());
+      saveSearchConfig(searchConfig);
     }
 
-    clearAndRefresh();
+    handleClearAndRefresh();
   }
 
-  /// click the card and enter details page
-  void handleTapCard(Gallery gallery) async {
+  void handleTapGalleryCard(Gallery gallery) async {
     toRoute(
       Routes.details,
       arguments: {
+        'gid': gallery.gid,
         'galleryUrl': gallery.galleryUrl,
         'gallery': gallery,
       },
     );
   }
 
-  void handleLongPressCard(Gallery gallery) async {}
+  void handleLongPressCard(BuildContext context, Gallery gallery) async {}
 
-  void handleSecondaryTapCard(Gallery gallery) async {}
+  void handleSecondaryTapCard(BuildContext context, Gallery gallery) async {}
 
-  Future<List<dynamic>> getGallerysAndPageInfoByPage(int pageIndex);
+  Future<GalleryPageInfo> getGalleryPage({String? prevGid, String? nextGid, DateTime? seek}) {
+    Log.info('$runtimeType get data, prevGid:$prevGid, nextGid:$nextGid');
+
+    return EHRequest.requestGalleryPage(
+      prevGid: prevGid,
+      nextGid: nextGid,
+      seek: seek,
+      searchConfig: state.searchConfig,
+      parser: EHSpiderParser.galleryPage2GalleryPageInfo,
+    );
+  }
+
+  void saveSearchConfig(SearchConfig searchConfig) {
+    storageService.write('searchConfig: $runtimeType', searchConfig.toJson());
+  }
 
   Future<void> translateGalleryTagsIfNeeded(List<Gallery> gallerys) async {
     await tagTranslationService.translateGalleryTagsIfNeeded(gallerys);
   }
 
-  /// in case that new gallery is uploaded.
-  void cleanDuplicateGallery(List<Gallery> newGallerys, List<Gallery> gallerys) {
-    newGallerys.removeWhere((newGallery) => gallerys.firstWhereOrNull((e) => e.galleryUrl == newGallery.galleryUrl) != null);
+  /// deal with the first and last page
+  void cleanDuplicateGallery(List<Gallery> newGallerys) {
+    newGallerys.removeWhere((newGallery) => state.gallerys.firstWhereOrNull((e) => e.galleryUrl == newGallery.galleryUrl) != null);
+  }
+
+  void handleGalleryByLocalTags(List<Gallery> newGallerys) {
+    if (newGallerys.isEmpty) {
+      return;
+    }
+    if (MyTagsSetting.localTagSets.isEmpty) {
+      return;
+    }
+    newGallerys.where((newGallery) => newGallery.tags.values.flattened.any((tag) => MyTagsSetting.containLocalTag(tag.tagData))).forEach((gallery) {
+      gallery.hasLocalFilteredTag = true;
+    });
+
+    // if all gallerys are filtered, we keep the first one to indicate
+    if (newGallerys.every((gallery) => gallery.hasLocalFilteredTag)) {
+      newGallerys.removeRange(1, newGallerys.length);
+    } else {
+      newGallerys.removeWhere((gallery) => gallery.hasLocalFilteredTag);
+    }
   }
 }

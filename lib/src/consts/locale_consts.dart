@@ -4,13 +4,13 @@ class LocaleConsts {
     'japanese': 'JP',
     'english': 'EN',
     'korean': 'KR',
-    'french': 'FR',
+    'spanish': 'ES',
+    'portuguese': 'PT',
     'russian': 'RU',
+    'french': 'FR',
     'italian': 'IT',
     'german': 'DE',
     'polish': 'PL',
-    'portuguese': 'PT',
-    'spanish': 'ES',
     'hungarian': 'HU',
     'thai': 'TH',
   };
@@ -19,6 +19,8 @@ class LocaleConsts {
     'zh_CN': '简体中文',
     'zh_TW': '繁體中文(台灣)',
     'en_US': 'English',
+    'pt_BR': 'Português brasileiro',
+    'ko_KR': '한국어'
   };
 
   static const Map<String, String> tagNamespace = {

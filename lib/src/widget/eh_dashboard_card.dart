@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:jhentai/src/model/gallery.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
 import 'package:jhentai/src/widget/eh_image.dart';
 import '../config/ui_config.dart';
 
@@ -11,13 +10,19 @@ import '../model/gallery_tag.dart';
 import '../routes/routes.dart';
 import '../service/tag_translation_service.dart';
 import '../utils/route_util.dart';
-import 'loading_state_indicator.dart';
 
-class EHDashboardCard extends StatelessWidget {
+class EHDashboardCard extends StatefulWidget {
   final Gallery gallery;
   final String? badge;
 
   const EHDashboardCard({Key? key, required this.gallery, this.badge}) : super(key: key);
+
+  @override
+  State<EHDashboardCard> createState() => _EHDashboardCardState();
+}
+
+class _EHDashboardCardState extends State<EHDashboardCard> {
+  bool loadSuccess = false;
 
   @override
   Widget build(BuildContext context) {
@@ -25,15 +30,21 @@ class EHDashboardCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(6),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => toRoute(Routes.details, arguments: {
-          'galleryUrl': gallery.galleryUrl,
-          'gallery': gallery,
-        }),
+        onTap: () => toRoute(
+          Routes.details,
+          arguments: {
+            'gid': widget.gallery.gid,
+            'galleryUrl': widget.gallery.galleryUrl,
+            'gallery': widget.gallery,
+          },
+        ),
+
+        /// show info after image load success
         child: Stack(
           children: [
-            _buildCover(gallery.cover),
-            Positioned(child: _buildShade(), height: 60, width: UIConfig.dashboardCardSize, bottom: 0),
-            Positioned(child: _buildGalleryDesc(), width: UIConfig.dashboardCardSize, bottom: 10),
+            _buildCover(widget.gallery.cover),
+            if (loadSuccess) Positioned(child: _buildShade(), height: 60, width: UIConfig.dashboardCardSize, bottom: 0),
+            if (loadSuccess) Positioned(child: _buildGalleryDesc(), width: UIConfig.dashboardCardSize, bottom: 10),
           ],
         ),
       ),
@@ -41,11 +52,31 @@ class EHDashboardCard extends StatelessWidget {
   }
 
   Widget _buildCover(GalleryImage image) {
-    return EHImage.network(
+    return EHImage(
       containerHeight: UIConfig.dashboardCardSize,
       containerWidth: UIConfig.dashboardCardSize,
       galleryImage: image,
       fit: BoxFit.cover,
+      completedWidgetBuilder: (_) {
+        Get.engine.addPostFrameCallback((_) {
+          if (mounted && !loadSuccess) {
+            setState(() => loadSuccess = true);
+          }
+        });
+        return null;
+      },
+    );
+  }
+
+  Widget _buildShade() {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, UIConfig.dashboardCardShadeColor],
+        ),
+      ),
     );
   }
 
@@ -55,23 +86,23 @@ class EHDashboardCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          gallery.title,
+          widget.gallery.title,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: Colors.white, fontSize: 12),
+          style: const TextStyle(color: UIConfig.dashboardCardTextColor, fontSize: 12),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
-            const Icon(Icons.account_circle, color: Colors.white, size: 12),
+            const Icon(Icons.account_circle, color: UIConfig.dashboardCardTextColor, size: 12),
             Text(
-              gallery.uploader ?? 'unknownUser'.tr,
+              widget.gallery.uploader ?? 'unknownUser'.tr,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: Colors.grey.shade300, fontSize: 10),
+              style: TextStyle(color: UIConfig.dashboardCardFooterTextColor, fontSize: 10),
             ).marginOnly(left: 2),
             const Expanded(child: SizedBox()),
             Text(
-              '${badge ?? ''} ${LocaleConsts.language2Abbreviation[gallery.language] ?? ''}',
-              style: TextStyle(color: Colors.grey.shade300, fontSize: 10),
+              '${widget.badge ?? ''} ${LocaleConsts.language2Abbreviation[widget.gallery.language] ?? ''}',
+              style: TextStyle(color: UIConfig.dashboardCardFooterTextColor, fontSize: 10),
             ),
           ],
         )
@@ -79,24 +110,10 @@ class EHDashboardCard extends StatelessWidget {
     ).paddingSymmetric(horizontal: 8);
   }
 
-  Widget _buildShade() {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Colors.black87],
-        ),
-      ),
-    );
-  }
-
   String? _getArtistName() {
-    String namespace = StyleSetting.enableTagZHTranslation.isTrue && Get.find<TagTranslationService>().loadingState.value == LoadingState.success
-        ? LocaleConsts.tagNamespace['artist']!
-        : 'artist';
+    String namespace = Get.find<TagTranslationService>().isReady ? LocaleConsts.tagNamespace['artist']! : 'artist';
 
-    List<GalleryTag>? artistTags = gallery.tags[namespace];
+    List<GalleryTag>? artistTags = widget.gallery.tags[namespace];
 
     if (artistTags?.isEmpty ?? true) {
       return null;

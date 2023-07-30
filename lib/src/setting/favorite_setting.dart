@@ -7,6 +7,7 @@ import 'package:jhentai/src/setting/user_setting.dart';
 import 'package:jhentai/src/utils/log.dart';
 import 'package:retry/retry.dart';
 
+import '../exception/eh_exception.dart';
 import '../service/storage_service.dart';
 import '../utils/eh_spider_parser.dart';
 
@@ -52,12 +53,11 @@ class FavoriteSetting {
       return;
     }
 
-    Log.info('refresh FavoriteSetting', false);
+    Log.info('refresh FavoriteSetting');
     try {
       await retry(
         () async {
-          Map<String, List> map =
-              await EHRequest.requestFavoritePage(EHSpiderParser.favoritePage2FavoriteTagsAndCounts);
+          Map<String, List> map = await EHRequest.requestFavoritePage(EHSpiderParser.favoritePage2FavoriteTagsAndCounts);
           favoriteTagNames.value = map['favoriteTagNames'] as List<String>;
           favoriteCounts = map['favoriteCounts'] as List<int>;
           save();
@@ -68,9 +68,12 @@ class FavoriteSetting {
     } on DioError catch (e) {
       Log.error('refresh FavoriteSetting fail', e.message);
       return;
+    } on EHException catch (e) {
+      Log.error('refresh FavoriteSetting fail', e.message);
+      return;
     }
 
-    Log.info('refresh FavoriteSetting success', false);
+    Log.info('refresh FavoriteSetting success');
   }
 
   static void incrementFavByIndex(int? index) async {
@@ -106,7 +109,7 @@ class FavoriteSetting {
     ];
     favoriteCounts = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
     Get.find<StorageService>().remove('favoriteSetting');
-    Log.info('clear FavoriteSetting success', false);
+    Log.info('clear FavoriteSetting success');
   }
 
   static Map<String, dynamic> _toMap() {

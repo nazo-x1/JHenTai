@@ -2,10 +2,10 @@ name: jhentai
 description: A flutter app for E-Hentai/EXHentai
 
 publish_to: 'none'
-version: 4.2.1+84
+version: 7.4.1+140
 
 environment:
-  sdk: ">=2.16.1 <3.0.0"
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -13,90 +13,115 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   cupertino_icons: ^1.0.2
+  # rewrite file mode
   dio:
     git:
       url: https://gitee.com/jiangtian616/dio
       path: dio
   cookie_jar: 3.0.1
-  dio_cookie_manager: ^2.0.0
+  dio_cookie_manager: 2.0.0
   dio_cache_interceptor: 3.2.6
-  dio_cache_interceptor_db_store: ^4.1.1
-  get: ^4.6.5
-  get_storage: ^2.0.3
+  dio_cache_interceptor_db_store: 4.1.1
+  get: 4.6.5
+  get_storage: 2.0.3
   extended_nested_scroll_view: ^5.0.0
   flukit: ^3.0.1
-  html: ^0.15.0
+  html: 0.15.1
   logger: ^1.1.0
   flutter_rating_bar: ^4.0.0
   waterfall_flow: ^3.0.2
-  extended_image: ^6.3.0
+  extended_image: 8.0.1
   font_awesome_flutter: ^9.2.0
-  intl: ^0.17.0
-  collection: 1.16.0
+  intl: 0.18.0
+  collection: 1.17.1
   clipboard: ^0.1.3
-  scrollable_positioned_list: ^0.3.2
-  flutter_list_view: ^1.1.18
+  scrollable_positioned_list: 0.3.5
+  flutter_list_view: 1.1.21
   executor: ^2.2.2
   retry: ^3.1.0
   path: ^1.8.0
-  drift: ^1.5.0
-  sqlite3_flutter_libs: ^0.5.0
+  drift: 1.7.1
+  sqlite3_flutter_libs: 0.5.8
   path_provider: ^2.0.9
   flutter_slidable: ^2.0.0
-  flutter_widget_from_html: ^0.8.5
-  url_launcher: ^6.1.5
-  like_button: ^2.0.4
+  flutter_widget_from_html: 0.9.1
+  url_launcher: 6.1.8
+  like_button: 2.0.5
   webview_flutter: ^3.0.4
-  photo_view: ^0.14.0
-  package_info_plus: ^1.4.3+1
-  file_picker: ^5.2.0+1
-  local_auth: 1.1.11
+  # rewrite double tap & tap drag gesture
+  photo_view:
+    git: 
+      url: https://github.com/jiangtian616/photo_view
+      ref: separate
+  package_info_plus: 4.0.0
+  file_picker: 5.3.0
+  local_auth: 2.1.6
   blur: ^3.1.0
   flutter_windowmanager: ^0.2.0
   animate_do: ^2.1.0
-  share_plus: ^4.0.10
+  share_plus: 4.5.3
   syncfusion_flutter_charts: ^20.2.36
-  sentry_flutter: ^6.9.1
-  archive: ^3.3.1
-  image_size_getter:
-    git:
-#      url: https://gitee.com/jiangtian616/dart_image_size_getter
-      url: https://github.com/jiangtian616/dart_image_size_getter
-      path: library
-  fluttertoast: ^8.0.9
-  battery_plus: ^2.1.4
+  sentry_flutter: 7.6.3
+  archive: 3.3.6
+  fluttertoast: 8.1.2
+  battery_plus: 3.0.2
   throttling: ^1.0.0
   receive_sharing_intent: ^1.4.5
-  bitsdojo_window: ^0.1.5
+  bitsdojo_window:
+    git: 
+      url: https://github.com/bitsdojo/bitsdojo_window
+      path: bitsdojo_window
   permission_handler: 9.2.0
   grouped_list: ^5.1.2
   resizable_widget:
     git: https://github.com/eurisit/resizable_widget
   loading_animation_widget: ^1.2.0+3
-  simple_animations: ^5.0.0+2
+  simple_animations: 5.0.1
   animated_flip_counter: ^0.2.5
-  image_gallery_saver:
-    git: https://github.com/hui-z/image_gallery_saver
-
+  image_save: 5.0.0
+  system_network_proxy: 1.0.2
+  http_proxy: 1.2.1
+  flutter_socks_proxy: 0.0.2
+  flutter_draggable_gridview:
+    # remove assert
+    git: https://github.com/jiangtian616/flutter_draggable_gridview
+  flutter_displaymode: 0.5.0
+  pinput: 2.2.31
+  wakelock: 0.6.2
+  material_color_utilities: 0.2.0
+  flex_color_picker: 3.1.0
+  zoom_widget: 2.0.1
+  android_intent_plus: 3.1.7
+  integral_isolates: 0.4.1
+  
 dependency_overrides:
   dio:
     git:
       url: https://gitee.com/jiangtian616/dio
       path: dio
-  visibility_detector: ^0.3.3
-  cached_network_image: ^3.2.1
-  fwfh_webview: ^0.6.2+3
-  fwfh_text_style: ^2.22.8+1
-
+  test_api: 0.6.0
+  matcher: 0.12.16
+  # Can be removed when https://github.com/creativecreatorormaybenot/wakelock/pull/203 is merged.
+  wakelock_windows:
+    git:
+      url: https://github.com/timsneath/wakelock
+      ref: win32-v5
+      path: wakelock_windows
+  bitsdojo_window_windows:
+    git: 
+      url: https://github.com/bitsdojo/bitsdojo_window
+      path: bitsdojo_window_windows
+      
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^1.0.0
-  test: ^1.19.5
-  drift_dev: ^1.5.2
+  test: 1.24.3
+  drift_dev: 1.7.0
   build_runner: ^2.1.8
-  flutter_launcher_icons:
-    git: https://github.com/fluttercommunity/flutter_launcher_icons
+  flutter_launcher_icons: 0.11.0
+
+
 
 flutter:
   uses-material-design: true

@@ -1,11 +1,11 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:jhentai/src/config/ui_config.dart';
 import 'package:jhentai/src/extension/widget_extension.dart';
 import 'package:jhentai/src/setting/read_setting.dart';
 
 import '../../../utils/log.dart';
-import '../../../widget/auto_mode_interval_dialog.dart';
 
 class SettingReadPage extends StatelessWidget {
   const SettingReadPage({Key? key}) : super(key: key);
@@ -20,36 +20,28 @@ class SettingReadPage extends StatelessWidget {
             padding: const EdgeInsets.only(top: 16),
             children: [
               _buildEnableImmersiveMode().center(),
+              _buildKeepScreenAwake().center(),
               _buildShowThumbnails().center(),
               _buildShowStatusInfo().center(),
+              if (GetPlatform.isAndroid) _buildEnablePageTurnByVolumeKeys().center(),
               _buildEnablePageTurnAnime().center(),
               _buildEnableDoubleTapToScaleUp().center(),
+              _buildEnableTapDragToScaleUp().center(),
+              _buildEnableBottomMenu().center(),
               if (GetPlatform.isDesktop) _buildUseThirdPartyViewer().center(),
               if (GetPlatform.isDesktop) _buildThirdPartyViewerPath().center(),
+              if (GetPlatform.isMobile) _buildDeviceDirection().center(),
               _buildReadDirection().center(),
-              if (ReadSetting.readDirection.value == ReadDirection.top2bottom || ReadSetting.enableContinuousHorizontalScroll.isTrue)
-                _buildPreloadDistanceInOnlineMode().fadeIn(const Key('preloadDistanceInOnlineMode')).center(),
-              if (ReadSetting.readDirection.value != ReadDirection.top2bottom && ReadSetting.enableContinuousHorizontalScroll.isFalse)
-                _buildPreloadPageCount().fadeIn(const Key('preloadPageCount')).center(),
-              if (ReadSetting.readDirection.value != ReadDirection.top2bottom &&
-                  ReadSetting.enableAutoScaleUp.isFalse &&
-                  ReadSetting.enableDoubleColumn.isFalse)
-                _buildContinuousScroll().fadeIn(const Key('continuousScroll')).center(),
-              if (ReadSetting.readDirection.value != ReadDirection.top2bottom &&
-                  ReadSetting.enableContinuousHorizontalScroll.isFalse &&
-                  ReadSetting.enableAutoScaleUp.isFalse)
-                _buildDoubleColumn().fadeIn(const Key('doubleColumn')).center(),
-              if (ReadSetting.readDirection.value != ReadDirection.top2bottom &&
-                  ReadSetting.enableContinuousHorizontalScroll.isFalse &&
-                  ReadSetting.enableDoubleColumn.isFalse)
-                _buildEnableAutoScaleUp().fadeIn(const Key('enableAutoScaleUp')).center(),
-              // _buildAutoModeInterval().center(),
-              if (ReadSetting.readDirection.value == ReadDirection.top2bottom || ReadSetting.enableContinuousHorizontalScroll.isTrue)
-                _buildAutoModeStyle().fadeIn(const Key('autoModeStyle')).center(),
-              if (ReadSetting.readDirection.value == ReadDirection.top2bottom || ReadSetting.enableContinuousHorizontalScroll.isTrue)
-                _buildTurnPageMode().fadeIn(const Key('turnPageMode')).center(),
+              if (ReadSetting.isInListReadDirection)
+                _buildPreloadDistanceInOnlineMode(context).fadeIn(const Key('preloadDistanceInOnlineMode')).center(),
+              if (!ReadSetting.isInListReadDirection) _buildPreloadPageCount().fadeIn(const Key('preloadPageCount')).center(),
+              if (ReadSetting.isInDoubleColumnReadDirection)
+                _buildDisplayFirstPageAlone().fadeIn(const Key('displayFirstPageAloneGlobally')).center(),
+              if (ReadSetting.isInListReadDirection) _buildAutoModeStyle().fadeIn(const Key('autoModeStyle')).center(),
+              if (ReadSetting.isInListReadDirection) _buildTurnPageMode().fadeIn(const Key('turnPageMode')).center(),
+              _buildImageSpace().center(),
             ],
-          ),
+          ).withListTileTheme(context),
         ),
       ),
     );
@@ -60,6 +52,52 @@ class SettingReadPage extends StatelessWidget {
       title: Text('enableImmersiveMode'.tr),
       subtitle: Text('enableImmersiveHint'.tr),
       trailing: Switch(value: ReadSetting.enableImmersiveMode.value, onChanged: ReadSetting.saveEnableImmersiveMode),
+    );
+  }
+
+  Widget _buildKeepScreenAwake() {
+    return ListTile(
+      title: Text('keepScreenAwakeWhenReading'.tr),
+      trailing: Switch(value: ReadSetting.keepScreenAwakeWhenReading.value, onChanged: ReadSetting.saveKeepScreenAwakeWhenReading),
+    );
+  }
+
+  Widget _buildImageSpace() {
+    return ListTile(
+      title: Text('spaceBetweenImages'.tr),
+      trailing: DropdownButton<int>(
+        value: ReadSetting.imageSpace.value,
+        elevation: 4,
+        onChanged: (int? newValue) {
+          ReadSetting.saveImageSpace(newValue!);
+        },
+        items: const [
+          DropdownMenuItem(
+            child: Text('0'),
+            value: 0,
+          ),
+          DropdownMenuItem(
+            child: Text('2'),
+            value: 2,
+          ),
+          DropdownMenuItem(
+            child: Text('4'),
+            value: 4,
+          ),
+          DropdownMenuItem(
+            child: Text('6'),
+            value: 6,
+          ),
+          DropdownMenuItem(
+            child: Text('8'),
+            value: 7,
+          ),
+          DropdownMenuItem(
+            child: Text('10'),
+            value: 10,
+          ),
+        ],
+      ),
     );
   }
 
@@ -77,6 +115,13 @@ class SettingReadPage extends StatelessWidget {
     );
   }
 
+  Widget _buildEnablePageTurnByVolumeKeys() {
+    return ListTile(
+      title: Text('enablePageTurnByVolumeKeys'.tr),
+      trailing: Switch(value: ReadSetting.enablePageTurnByVolumeKeys.value, onChanged: ReadSetting.saveEnablePageTurnByVolumeKeys),
+    );
+  }
+
   Widget _buildEnablePageTurnAnime() {
     return ListTile(
       title: Text('enablePageTurnAnime'.tr),
@@ -91,6 +136,36 @@ class SettingReadPage extends StatelessWidget {
     );
   }
 
+  Widget _buildEnableTapDragToScaleUp() {
+    return ListTile(
+      title: Text('enableTapDragToScaleUp'.tr),
+      trailing: Switch(value: ReadSetting.enableTapDragToScaleUp.value, onChanged: ReadSetting.saveEnableTapDragToScaleUp),
+    );
+  }
+  
+  Widget _buildEnableBottomMenu(){
+    return ListTile(
+      title: Text('enableBottomMenu'.tr),
+      trailing: Switch(value: ReadSetting.enableBottomMenu.value, onChanged: ReadSetting.saveEnableBottomMenu),
+    );
+  }
+
+  Widget _buildDeviceDirection() {
+    return ListTile(
+      title: Text('deviceOrientation'.tr),
+      trailing: DropdownButton<DeviceDirection>(
+        value: ReadSetting.deviceDirection.value,
+        elevation: 4,
+        onChanged: (DeviceDirection? newValue) => ReadSetting.saveDeviceDirection(newValue!),
+        items: [
+          DropdownMenuItem(child: Text('followSystem'.tr), value: DeviceDirection.followSystem),
+          DropdownMenuItem(child: Text('landscape'.tr), value: DeviceDirection.landscape),
+          DropdownMenuItem(child: Text('portrait'.tr), value: DeviceDirection.portrait),
+        ],
+      ).marginOnly(right: 12),
+    );
+  }
+
   Widget _buildReadDirection() {
     return ListTile(
       title: Text('readDirection'.tr),
@@ -98,11 +173,7 @@ class SettingReadPage extends StatelessWidget {
         value: ReadSetting.readDirection.value,
         elevation: 4,
         onChanged: (ReadDirection? newValue) => ReadSetting.saveReadDirection(newValue!),
-        items: [
-          DropdownMenuItem(child: Text('top2bottom'.tr), value: ReadDirection.top2bottom),
-          DropdownMenuItem(child: Text('left2right'.tr), value: ReadDirection.left2right),
-          DropdownMenuItem(child: Text('right2left'.tr), value: ReadDirection.right2left),
-        ],
+        items: ReadDirection.values.map((e) => DropdownMenuItem(child: Text(e.name.tr), value: e)).toList(),
       ).marginOnly(right: 12),
     );
   }
@@ -138,7 +209,7 @@ class SettingReadPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPreloadDistanceInOnlineMode() {
+  Widget _buildPreloadDistanceInOnlineMode(BuildContext context) {
     return ListTile(
       title: Text('preloadDistanceInOnlineMode'.tr),
       trailing: Row(
@@ -177,7 +248,7 @@ class SettingReadPage extends StatelessWidget {
               ),
             ],
           ),
-          Text('ScreenHeight'.tr).marginSymmetric(horizontal: 12),
+          Text('ScreenHeight'.tr, style: UIConfig.settingPageListTileTrailingTextStyle(context)).marginSymmetric(horizontal: 12),
         ],
       ),
     );
@@ -222,40 +293,10 @@ class SettingReadPage extends StatelessWidget {
     );
   }
 
-  Widget _buildContinuousScroll() {
+  Widget _buildDisplayFirstPageAlone() {
     return ListTile(
-      title: Text('continuousScroll'.tr),
-      subtitle: Text('continuousScrollHint'.tr),
-      trailing: Switch(value: ReadSetting.enableContinuousHorizontalScroll.value, onChanged: ReadSetting.saveEnableContinuousHorizontalScroll),
-    );
-  }
-
-  Widget _buildDoubleColumn() {
-    return ListTile(
-      title: Text('doubleColumn'.tr),
-      trailing: Switch(value: ReadSetting.enableDoubleColumn.value, onChanged: ReadSetting.saveEnableDoubleColumn),
-    );
-  }
-
-  Widget _buildEnableAutoScaleUp() {
-    return ListTile(
-      title: Text('enableAutoScaleUp'.tr),
-      subtitle: Text('enableAutoScaleUpHints'.tr),
-      trailing: Switch(value: ReadSetting.enableAutoScaleUp.value, onChanged: ReadSetting.saveEnableAutoScaleUp),
-    );
-  }
-
-  Widget _buildAutoModeInterval() {
-    return ListTile(
-      title: Text('autoModeInterval'.tr),
-      onTap: () => Get.dialog(const AutoModeIntervalDialog()),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('${ReadSetting.autoModeInterval.value}s'),
-          const Icon(Icons.keyboard_arrow_right),
-        ],
-      ).marginOnly(right: 4),
+      title: Text('displayFirstPageAloneGlobally'.tr),
+      trailing: Switch(value: ReadSetting.displayFirstPageAlone.value, onChanged: ReadSetting.saveDisplayFirstPageAlone),
     );
   }
 

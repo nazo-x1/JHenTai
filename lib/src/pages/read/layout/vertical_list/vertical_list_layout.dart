@@ -16,7 +16,6 @@ class VerticalListLayout extends BaseLayout {
 
   @override
   final VerticalListLayoutLogic logic = Get.put<VerticalListLayoutLogic>(VerticalListLayoutLogic(), permanent: true);
-  @override
   final VerticalListLayoutState state = Get.find<VerticalListLayoutLogic>().state;
 
   @override
@@ -26,21 +25,27 @@ class VerticalListLayout extends BaseLayout {
       itemCount: 1,
       builder: (_, __) => PhotoViewGalleryPageOptions.customChild(
         controller: state.photoViewController,
-        scaleStateController: state.photoViewScaleStateController,
-        basePosition: state.scalePosition,
-        onScaleEnd: logic.onScaleEnd,
+        initialScale: 1.0,
+        minScale: 1.0,
+        maxScale: 2.5,
+        scaleStateCycle: ReadSetting.enableDoubleTapToScaleUp.isTrue ? logic.scaleStateCycle : null,
+        enableTapDragZoom: ReadSetting.enableTapDragToScaleUp.isTrue,
         child: EHWheelSpeedControllerForReadPage(
           scrollController: state.itemScrollController,
           child: EHScrollablePositionedList.separated(
             physics: const ClampingScrollPhysics(),
-            minCacheExtent: readPageState.readPageInfo.mode == ReadMode.online ? ReadSetting.preloadDistance * screenHeight * 1 : 8 * screenHeight,
+            minCacheExtent: readPageState.readPageInfo.mode == ReadMode.online
+                ? ReadSetting.preloadDistance * screenHeight * 1
+                : GetPlatform.isIOS
+                    ? 3 * screenHeight
+                    : 8 * screenHeight,
             initialScrollIndex: readPageState.readPageInfo.initialIndex,
             itemCount: readPageState.readPageInfo.pageCount,
             itemScrollController: state.itemScrollController,
             itemPositionsListener: state.itemPositionsListener,
             itemBuilder: (context, index) =>
                 readPageState.readPageInfo.mode == ReadMode.online ? buildItemInOnlineMode(context, index) : buildItemInLocalMode(context, index),
-            separatorBuilder: (_, __) => const Divider(height: 6),
+            separatorBuilder: (_, __) => Obx(() => SizedBox(height: ReadSetting.imageSpace.value.toDouble())),
           ),
         ),
       ),

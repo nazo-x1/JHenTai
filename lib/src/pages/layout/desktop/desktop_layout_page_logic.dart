@@ -1,31 +1,20 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
-import '../../../config/ui_config.dart';
-import '../../../service/windows_service.dart';
+import '../../../mixin/double_tap_to_refresh_logic_mixin.dart';
 import '../../home_page.dart';
 import 'desktop_layout_page_state.dart';
 
-class DesktopLayoutPageLogic extends GetxController {
+class DesktopLayoutPageLogic extends GetxController with DoubleTapToRefreshLogicMixin {
   final String tabBarId = 'tabBarId';
   final String leftColumnId = 'leftColumnId';
 
+  @override
   DesktopLayoutPageState state = DesktopLayoutPageState();
 
-  final WindowService windowService = Get.find<WindowService>();
-
-  @override
-  void onInit() {
-    super.onInit();
-    state.leftColumnWidthRatio = windowService.leftColumnWidthRatio;
-  }
-
-  @override
-  void onClose() {
-    state.leftTabBarFocusScopeNode.dispose();
-    state.leftColumnFocusScopeNode.dispose();
-    state.rightColumnFocusScopeNode.dispose();
-    super.onClose();
+  void updateHoveringTabIndex(int? index) {
+    state.hoveringTabIndex = index;
+    update([tabBarId]);
   }
 
   /// tap another bar -> change index
@@ -44,40 +33,7 @@ class DesktopLayoutPageLogic extends GetxController {
       return;
     }
 
-    ScrollController? scrollController = state.scrollControllers[index];
-
-    /// no popular_page.dart data
-    if ((scrollController?.hasClients ?? false) == false) {
-      return;
-    }
-
-    /// scroll to top
-    if (scrollController?.offset != 0) {
-      scrollController?.animateTo(
-        0,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.ease,
-      );
-    }
-
-    if (state.lastTapTime == null) {
-      state.lastTapTime = DateTime.now();
-      return;
-    }
-
-    if (DateTime.now().difference(state.lastTapTime!).inMilliseconds <= 200) {
-      Future.delayed(
-        const Duration(milliseconds: 0),
-
-        /// default value equals to CupertinoSliverRefreshControl._defaultRefreshTriggerPullDistance
-        () => scrollController?.animateTo(
-          -UIConfig.refreshTriggerPullDistance,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.ease,
-        ),
-      );
-    }
-
-    state.lastTapTime = DateTime.now();
+    ScrollController? scrollController = state.icons[index].scrollController?.call();
+    handleTap2Scroll2Top(scrollController);
   }
 }

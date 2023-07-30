@@ -6,13 +6,14 @@ import 'package:jhentai/src/config/ui_config.dart';
 import 'package:jhentai/src/extension/get_logic_extension.dart';
 import 'package:jhentai/src/network/eh_request.dart';
 import 'package:jhentai/src/pages/setting/eh/tagsets/tag_sets_page.dart';
-import 'package:jhentai/src/setting/style_setting.dart';
 import 'package:jhentai/src/setting/user_setting.dart';
 import 'package:jhentai/src/utils/eh_spider_parser.dart';
 import 'package:jhentai/src/utils/toast_util.dart';
 
 import '../../../../database/database.dart';
+import '../../../../exception/eh_exception.dart';
 import '../../../../mixin/scroll_to_top_logic_mixin.dart';
+import '../../../../mixin/scroll_to_top_state_mixin.dart';
 import '../../../../model/tag_set.dart';
 import '../../../../service/tag_translation_service.dart';
 import '../../../../utils/color_util.dart';
@@ -28,8 +29,10 @@ class TagSetsLogic extends GetxController with Scroll2TopLogicMixin {
   static const String loadingStateId = 'loadingStateId';
   static const String tagId = 'tagId';
 
-  @override
   final TagSetsState state = TagSetsState();
+
+  @override
+  Scroll2TopStateMixin get scroll2TopState => state;
 
   final TagTranslationService tagTranslationService = Get.find<TagTranslationService>();
 
@@ -51,7 +54,13 @@ class TagSetsLogic extends GetxController with Scroll2TopLogicMixin {
       );
     } on DioError catch (e) {
       Log.error('getTagSetFailed'.tr, e.message);
-      snack('getTagSetFailed'.tr, e.message, longDuration: true, snackPosition: SnackPosition.BOTTOM);
+      snack('getTagSetFailed'.tr, e.message, longDuration: true);
+      state.loadingState = LoadingState.error;
+      updateSafely([bodyId]);
+      return;
+    } on EHException catch (e) {
+      Log.error('getTagSetFailed'.tr, e.message);
+      snack('getTagSetFailed'.tr, e.message, longDuration: true);
       state.loadingState = LoadingState.error;
       updateSafely([bodyId]);
       return;
@@ -65,6 +74,16 @@ class TagSetsLogic extends GetxController with Scroll2TopLogicMixin {
 
     state.loadingState = LoadingState.success;
     updateSafely([titleId, bodyId]);
+  }
+
+  Future<void> handleUpdateColor(int tagSetIndex, Color? newColor) async {
+    if (newColor == state.tagSets[tagSetIndex].backgroundColor) {
+      return;
+    }
+
+    TagSet tagSet = state.tagSets[tagSetIndex].copyWith();
+    tagSet.backgroundColor = newColor;
+    _updateTagSet(tagSet);
   }
 
   Future<void> handleUpdateWeight(int tagSetIndex, String value) async {
@@ -107,7 +126,7 @@ class TagSetsLogic extends GetxController with Scroll2TopLogicMixin {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.favorite, color: UIConfig.tagSetsPageIconColor).marginOnly(right: 4),
+                Icon(Icons.favorite, color: UIConfig.tagSetsPageIconDefaultColor(context)).marginOnly(right: 4),
                 SizedBox(width: 56, child: Text('favorite'.tr)),
               ],
             ),
@@ -120,7 +139,7 @@ class TagSetsLogic extends GetxController with Scroll2TopLogicMixin {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.not_interested, color: UIConfig.tagSetsPageIconColor).marginOnly(right: 4),
+                Icon(Icons.not_interested, color: UIConfig.tagSetsPageIconDefaultColor(context)).marginOnly(right: 4),
                 SizedBox(width: 56, child: Text('hidden'.tr)),
               ],
             ),
@@ -133,7 +152,7 @@ class TagSetsLogic extends GetxController with Scroll2TopLogicMixin {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.question_mark, color: UIConfig.tagSetsPageIconColor),
+                Icon(Icons.question_mark, color: UIConfig.tagSetsPageIconDefaultColor(context)),
                 SizedBox(width: 56, child: Text('nope'.tr)),
               ],
             ),
@@ -146,7 +165,7 @@ class TagSetsLogic extends GetxController with Scroll2TopLogicMixin {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.delete, color: Get.theme.colorScheme.error),
+                Icon(Icons.delete, color: UIConfig.alertColor(context)),
                 SizedBox(width: 56, child: Text('delete'.tr)),
               ],
             ),
@@ -172,14 +191,20 @@ class TagSetsLogic extends GetxController with Scroll2TopLogicMixin {
         apiuid: UserSetting.ipbMemberId.value!,
         apikey: state.apikey,
         tagId: tag.tagId,
-        tagColor: color2aRGBString(tag.color),
+        tagColor: color2aRGBString(tag.backgroundColor),
         tagWeight: tag.weight,
         watch: tag.watched,
         hidden: tag.hidden,
       );
     } on DioError catch (e) {
       Log.error('updateTagSetFailed'.tr, e.message);
-      snack('updateTagSetFailed'.tr, e.message, longDuration: true, snackPosition: SnackPosition.BOTTOM);
+      snack('updateTagSetFailed'.tr, e.message, longDuration: true);
+      state.updateTagState = LoadingState.error;
+      updateSafely(['$tagId::${tag.tagId}']);
+      return;
+    } on EHException catch (e) {
+      Log.error('updateTagSetFailed'.tr, e.message);
+      snack('updateTagSetFailed'.tr, e.message, longDuration: true);
       state.updateTagState = LoadingState.error;
       updateSafely(['$tagId::${tag.tagId}']);
       return;
@@ -208,6 +233,12 @@ class TagSetsLogic extends GetxController with Scroll2TopLogicMixin {
       state.updateTagState = LoadingState.error;
       updateSafely(['$tagId::${tag.tagId}']);
       return;
+    } on EHException catch (e) {
+      Log.error('deleteTagSetFailed'.tr, e.message);
+      snack('deleteTagSetFailed'.tr, e.message, longDuration: true);
+      state.updateTagState = LoadingState.error;
+      updateSafely(['$tagId::${tag.tagId}']);
+      return;
     }
 
     toast('${'deleteTagSetSuccess'.tr}: ${state.tagSets[tagSetIndex].tagData.namespace}:${state.tagSets[tagSetIndex].tagData.key}');
@@ -218,7 +249,7 @@ class TagSetsLogic extends GetxController with Scroll2TopLogicMixin {
   }
 
   Future<void> _translateTagSetNamesIfNeeded() async {
-    if (StyleSetting.enableTagZHTranslation.isTrue && tagTranslationService.loadingState.value == LoadingState.success) {
+    if (tagTranslationService.isReady) {
       for (TagSet tagSet in state.tagSets) {
         TagData? tagData = await tagTranslationService.getTagTranslation(tagSet.tagData.namespace, tagSet.tagData.key);
         if (tagData != null) {

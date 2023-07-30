@@ -32,13 +32,7 @@ class GalleryThumbnail {
           offSet == other.offSet);
 
   @override
-  int get hashCode =>
-      href.hashCode ^
-      thumbUrl.hashCode ^
-      isLarge.hashCode ^
-      thumbHeight.hashCode ^
-      thumbWidth.hashCode ^
-      offSet.hashCode;
+  int get hashCode => href.hashCode ^ thumbUrl.hashCode ^ isLarge.hashCode ^ thumbHeight.hashCode ^ thumbWidth.hashCode ^ offSet.hashCode;
 
   @override
   String toString() {
@@ -72,12 +66,12 @@ class GalleryThumbnail {
 
   Map<String, dynamic> toMap() {
     return {
-      'href': this.href,
-      'thumbUrl': this.thumbUrl,
-      'isLarge': this.isLarge,
-      'thumbHeight': this.thumbHeight,
-      'thumbWidth': this.thumbWidth,
-      'offSet': this.offSet,
+      'href': href,
+      'thumbUrl': thumbUrl,
+      'isLarge': isLarge,
+      'thumbHeight': thumbHeight,
+      'thumbWidth': thumbWidth,
+      'offSet': offSet,
     };
   }
 

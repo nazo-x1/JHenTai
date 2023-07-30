@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -33,28 +35,16 @@ class JHLayout {
           isSupported: () => true,
         ),
         JHLayout(
-          mode: LayoutMode.mobile,
-          name: 'mobileLayoutName'.tr,
-          desc: 'mobileLayoutDesc'.tr,
-          isSupported: () => true,
-        ),
-        JHLayout(
           mode: LayoutMode.tabletV2,
           name: 'tabletLayoutV2Name'.tr,
           desc: 'tabletLayoutV2Desc'.tr,
-          isSupported: () => WidgetsBinding.instance.window.physicalSize.width / WidgetsBinding.instance.window.devicePixelRatio >= 600,
-        ),
-        JHLayout(
-          mode: LayoutMode.tablet,
-          name: 'tabletLayoutName'.tr,
-          desc: 'tabletLayoutDesc'.tr,
-          isSupported: () => WidgetsBinding.instance.window.physicalSize.width / WidgetsBinding.instance.window.devicePixelRatio >= 600,
+          isSupported: () => PlatformDispatcher.instance.views.first.physicalSize.width / PlatformDispatcher.instance.views.first.devicePixelRatio >= 600,
         ),
         JHLayout(
           mode: LayoutMode.desktop,
           name: 'desktopLayoutName'.tr,
           desc: 'desktopLayoutDesc'.tr,
-          isSupported: () => WidgetsBinding.instance.window.physicalSize.width / WidgetsBinding.instance.window.devicePixelRatio >= 600,
+          isSupported: () => PlatformDispatcher.instance.views.first.physicalSize.width / PlatformDispatcher.instance.views.first.devicePixelRatio >= 600,
         ),
       ];
 }

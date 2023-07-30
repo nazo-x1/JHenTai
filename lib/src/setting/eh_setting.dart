@@ -1,12 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:jhentai/src/network/eh_request.dart';
+import 'package:jhentai/src/setting/site_setting.dart';
 import 'package:jhentai/src/setting/user_setting.dart';
 import 'package:jhentai/src/utils/log.dart';
 import 'package:jhentai/src/widget/loading_state_indicator.dart';
 import 'package:retry/retry.dart';
 
+import '../exception/eh_exception.dart';
 import '../service/storage_service.dart';
 import '../utils/eh_spider_parser.dart';
 
@@ -22,9 +23,9 @@ class EHSetting {
     Map<String, dynamic>? map = Get.find<StorageService>().read<Map<String, dynamic>>('EHSetting');
     if (map != null) {
       _initFromMap(map);
-      Log.debug('init EHSetting success', false);
+      Log.debug('init EHSetting success, site: $site');
     } else {
-      Log.debug('init EHSetting success: default', false);
+      Log.debug('init EHSetting success: default');
     }
 
     /// listen to logout
@@ -43,7 +44,7 @@ class EHSetting {
       return;
     }
 
-    Log.info('refresh EHSetting', false);
+    Log.info('refresh EHSetting');
     refreshState.value = LoadingState.loading;
     Map<String, int> map = {};
     try {
@@ -58,6 +59,10 @@ class EHSetting {
       Log.error('refresh EHSetting fail', e.message);
       refreshState.value = LoadingState.error;
       return;
+    } on EHException catch (e) {
+      Log.error('refresh EHSetting fail', e.message);
+      refreshState.value = LoadingState.error;
+      return;
     }
 
     currentConsumption.value = map['currentConsumption']!;
@@ -65,13 +70,14 @@ class EHSetting {
     resetCost.value = map['resetCost']!;
     refreshState.value = LoadingState.idle;
     _save();
-    Log.info('refresh EHSetting success', false);
+    Log.info('refresh EHSetting success');
   }
 
   static saveSite(String site) {
     Log.debug('saveSite:$site');
     EHSetting.site.value = site;
     _save();
+    SiteSetting.refresh();
   }
 
   static saveRedirect2Eh(bool redirect2Eh) {
@@ -94,7 +100,7 @@ class EHSetting {
     site.value = 'EH';
     currentConsumption.value = -1;
     Get.find<StorageService>().remove('EHSetting');
-    Log.info('clear EHSetting success', false);
+    Log.info('clear EHSetting success');
   }
 
   static Map<String, dynamic> _toMap() {

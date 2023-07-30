@@ -1,4 +1,5 @@
-import '../base/base_page_state.dart';
+import '../../routes/routes.dart';
+import '../base/old_base_page_state.dart';
 
 enum RanklistType {
   allTime,
@@ -7,6 +8,9 @@ enum RanklistType {
   day,
 }
 
-class RanklistPageState extends BasePageState {
+class RanklistPageState extends OldBasePageState {
+  @override
+  String get route => Routes.ranklist;
+
   RanklistType ranklistType = RanklistType.day;
 }

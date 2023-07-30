@@ -1,21 +1,14 @@
 class EHException implements Exception {
   EHExceptionType type;
-  String msg;
+  String message;
+  bool shouldPauseAllDownloadTasks;
 
-  EHException({
-    required this.type,
-    required this.msg,
-  });
+  EHException({required this.type, required this.message, this.shouldPauseAllDownloadTasks = true});
 
   @override
   String toString() {
-    return msg;
+    return message;
   }
 }
 
-enum EHExceptionType {
-  blankBody,
-  banned,
-  exceedLimit,
-  unsupportedImagePageStyle,
-}
+enum EHExceptionType { blankBody, banned, exceedLimit, unsupportedImagePageStyle, tagSetExceedLimit, galleryDeleted, intelNelError }

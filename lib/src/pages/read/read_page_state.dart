@@ -2,6 +2,7 @@ import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:jhentai/src/model/read_page_info.dart';
+import 'package:jhentai/src/pages/read/widget/eh_scrollable_positioned_list.dart';
 import 'package:jhentai/src/setting/site_setting.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
@@ -21,6 +22,7 @@ class ReadPageState {
 
   late List<LoadingState> parseImageHrefsStates;
   late List<LoadingState> parseImageUrlStates;
+  late List<Size?> imageContainerSizes;
   String? parseImageHrefErrorMsg;
   late List<String?> parseImageUrlErrorMsg;
 
@@ -28,9 +30,10 @@ class ReadPageState {
   bool isMenuOpen = false;
   Battery battery = Battery();
   int batteryLevel = 100;
+  bool useSuperResolution = false;
   FocusNode focusNode = FocusNode();
 
-  final ItemScrollController thumbnailsScrollController = ItemScrollController();
+  final EHItemScrollController thumbnailsScrollController = EHItemScrollController();
   final ItemPositionsListener thumbnailPositionsListener = ItemPositionsListener.create();
 
   ReadPageState() {
@@ -50,7 +53,10 @@ class ReadPageState {
 
     parseImageHrefsStates = List.generate(readPageInfo.pageCount, (_) => LoadingState.idle);
     parseImageUrlStates = List.generate(readPageInfo.pageCount, (_) => LoadingState.idle);
+    imageContainerSizes = List.generate(readPageInfo.pageCount, (_) => null);
     parseImageUrlErrorMsg = List.generate(readPageInfo.pageCount, (_) => null);
     parseImageUrlErrorMsg = List.generate(readPageInfo.pageCount, (_) => null);
+
+    useSuperResolution = readPageInfo.useSuperResolution;
   }
 }

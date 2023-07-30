@@ -2,19 +2,15 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:animate_do/animate_do.dart';
+import 'package:blur/blur.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:get/get.dart';
 import 'package:jhentai/src/config/ui_config.dart';
 import 'package:jhentai/src/model/gallery.dart';
 import 'package:jhentai/src/model/gallery_tag.dart';
-import 'package:jhentai/src/pages/home_page.dart';
-import 'package:jhentai/src/pages/layout/desktop/desktop_layout_page_logic.dart';
-import 'package:jhentai/src/routes/routes.dart';
 import 'package:jhentai/src/setting/style_setting.dart';
-import 'package:jhentai/src/utils/route_util.dart';
 import 'package:jhentai/src/widget/eh_gallery_favorite_tag.dart';
-import 'package:jhentai/src/widget/focus_widget.dart';
 import 'package:waterfall_flow/waterfall_flow.dart';
 
 import '../consts/color_consts.dart';
@@ -29,60 +25,52 @@ typedef CardCallback = FutureOr<void> Function(Gallery gallery);
 
 class EHGalleryListCard extends StatelessWidget {
   final Gallery gallery;
+  final ListMode listMode;
   final CardCallback handleTapCard;
   final CardCallback? handleLongPressCard;
   final CardCallback? handleSecondaryTapCard;
   final bool withTags;
 
-  const EHGalleryListCard(
-      {Key? key, required this.gallery, required this.handleTapCard, this.withTags = true, this.handleLongPressCard, this.handleSecondaryTapCard})
-      : super(key: key);
+  const EHGalleryListCard({
+    Key? key,
+    required this.gallery,
+    required this.listMode,
+    required this.handleTapCard,
+    this.withTags = true,
+    this.handleLongPressCard,
+    this.handleSecondaryTapCard,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return FocusWidget(
-      focusedDecoration: StyleSetting.listMode.value == ListMode.flat
-          ? BoxDecoration(
-              color: Get.theme.cardColor,
-              border: Border(right: BorderSide(width: 3, color: Get.theme.colorScheme.onBackground)),
-            )
-          : const BoxDecoration(color: Colors.grey),
-      handleTapArrowLeft: () => Get.find<DesktopLayoutPageLogic>().state.leftTabBarFocusScopeNode.requestFocus(),
-      handleTapEnter: () => handleTapCard(gallery),
-      handleTapArrowRight: () {
-        if (!isRouteAtTop(Routes.details)) {
-          handleTapCard(gallery);
-          return;
-        }
-
-        if (rightRouting.args is Gallery && rightRouting.args.galleryUrl != gallery.galleryUrl) {
-          handleTapCard(gallery);
-          return;
-        }
-
-        Get.find<DesktopLayoutPageLogic>().state.rightColumnFocusScopeNode.requestFocus();
-      },
-      child: GalleryCard(
-        gallery: gallery,
-        withTags: withTags,
-        handleTapCard: handleTapCard,
-        handleLongPressCard: handleLongPressCard,
-        handleSecondaryTapCard: handleSecondaryTapCard,
-      ),
+    return GalleryCard(
+      gallery: gallery,
+      flat: listMode == ListMode.flat || listMode == ListMode.flatWithoutTags,
+      withTags: withTags,
+      handleTapCard: handleTapCard,
+      handleLongPressCard: handleLongPressCard,
+      handleSecondaryTapCard: handleSecondaryTapCard,
     );
   }
 }
 
 class GalleryCard extends StatelessWidget {
   final Gallery gallery;
+  final bool flat;
   final bool withTags;
   final CardCallback handleTapCard;
   final CardCallback? handleLongPressCard;
   final CardCallback? handleSecondaryTapCard;
 
-  const GalleryCard(
-      {Key? key, required this.gallery, required this.withTags, required this.handleTapCard, this.handleLongPressCard, this.handleSecondaryTapCard})
-      : super(key: key);
+  const GalleryCard({
+    Key? key,
+    required this.gallery,
+    required this.flat,
+    required this.withTags,
+    required this.handleTapCard,
+    this.handleLongPressCard,
+    this.handleSecondaryTapCard,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -95,10 +83,7 @@ class GalleryCard extends StatelessWidget {
         duration: const Duration(milliseconds: 100),
         child: SizedBox(
           height: withTags ? UIConfig.galleryCardHeight : UIConfig.galleryCardHeightWithoutTags,
-          child: Obx(() {
-            if (StyleSetting.listMode.value == ListMode.flat) return _FlatGalleryCard(gallery: gallery, withTags: withTags);
-            return _RoundGalleryCard(gallery: gallery, withTags: withTags);
-          }),
+          child: flat ? _FlatGalleryCard(gallery: gallery, withTags: withTags) : _RoundGalleryCard(gallery: gallery, withTags: withTags),
         ),
       ),
     );
@@ -115,10 +100,10 @@ class _RoundGalleryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.background,
+        color: UIConfig.backGroundColor(context),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.3),
+            color: UIConfig.galleryCardShadowColor(context),
             blurRadius: 3,
             offset: const Offset(2, 2),
           )
@@ -142,7 +127,7 @@ class _FlatGalleryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     List<Widget> children = [
-      _GalleryCardCover(image: gallery.cover, withTags: withTags),
+      _GalleryCardCover(image: gallery.cover, withTags: withTags, withHeroTag: !gallery.hasLocalFilteredTag),
       Expanded(
         child: _GalleryCardInfo(gallery: gallery, withTags: withTags).paddingOnly(left: 6, right: 10, top: 6, bottom: 5),
       ),
@@ -152,28 +137,52 @@ class _FlatGalleryCard extends StatelessWidget {
       children = children.reversed.toList();
     }
 
-    return ColoredBox(
-      color: Theme.of(context).colorScheme.background,
+    Widget child = ColoredBox(
+      color: UIConfig.backGroundColor(context),
       child: Row(children: children),
     );
+
+    if (gallery.hasLocalFilteredTag) {
+      child = Blur(
+        blur: 8,
+        blurColor: UIConfig.backGroundColor(context),
+        colorOpacity: 0.7,
+        child: child,
+        overlay: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.cancel_outlined, size: UIConfig.galleryCardFilteredIconSize, color: UIConfig.onBackGroundColor(context)),
+            Text('filtered'.tr, style: TextStyle(color: UIConfig.onBackGroundColor(context))),
+          ],
+        ),
+      );
+    }
+
+    return child;
   }
 }
 
 class _GalleryCardCover extends StatelessWidget {
   final GalleryImage image;
   final bool withTags;
+  final bool withHeroTag;
 
-  const _GalleryCardCover({Key? key, required this.image, required this.withTags}) : super(key: key);
+  const _GalleryCardCover({
+    Key? key,
+    required this.image,
+    required this.withTags,
+    required this.withHeroTag,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return EHImage.network(
-      containerColor: Get.theme.colorScheme.surfaceVariant,
+    return EHImage(
+      galleryImage: image,
+      containerColor: UIConfig.galleryCardBackGroundColor(context),
       containerHeight: withTags ? UIConfig.galleryCardHeight : UIConfig.galleryCardHeightWithoutTags,
       containerWidth: withTags ? UIConfig.galleryCardCoverWidth : UIConfig.galleryCardCoverWidthWithoutTags,
-      heroTag: image,
+      heroTag: withHeroTag ? image : null,
       fit: BoxFit.fitWidth,
-      galleryImage: image,
     );
   }
 }
@@ -191,7 +200,7 @@ class _GalleryCardInfo extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _GalleryCardInfoHeader(title: gallery.title, uploader: gallery.uploader),
-        if (withTags && gallery.tags.isNotEmpty) _GalleryCardTagWaterFlow(tags: gallery.tags),
+        if (withTags && gallery.tags.isNotEmpty) GalleryCardTagWaterFlow(tags: gallery.tags),
         _GalleryInfoFooter(gallery: gallery),
       ],
     );
@@ -219,17 +228,17 @@ class _GalleryCardInfoHeader extends StatelessWidget {
         if (uploader != null)
           Text(
             uploader!,
-            style: TextStyle(fontSize: UIConfig.galleryCardTextSize, color: UIConfig.galleryCardTextColor),
+            style: TextStyle(fontSize: UIConfig.galleryCardTextSize, color: UIConfig.galleryCardTextColor(context)),
           ).marginOnly(top: 2),
       ],
     );
   }
 }
 
-class _GalleryCardTagWaterFlow extends StatelessWidget {
+class GalleryCardTagWaterFlow extends StatelessWidget {
   final LinkedHashMap<String, List<GalleryTag>> tags;
 
-  const _GalleryCardTagWaterFlow({Key? key, required this.tags}) : super(key: key);
+  const GalleryCardTagWaterFlow({Key? key, required this.tags}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -251,9 +260,7 @@ class _GalleryCardTagWaterFlow extends StatelessWidget {
           crossAxisSpacing: 4,
         ),
         itemCount: mergedList.length,
-        itemBuilder: (_, int index) => EHTag(
-          tag: mergedList[index],
-        ),
+        itemBuilder: (_, int index) => EHTag(tag: mergedList[index]),
       ),
     );
   }
@@ -274,18 +281,17 @@ class _GalleryInfoFooter extends StatelessWidget {
           children: [
             EHGalleryCategoryTag(category: gallery.category),
             const Expanded(child: SizedBox()),
-            if (gallery.isFavorite)
-              EHGalleryFavoriteTag(name: gallery.favoriteTagName!, color: ColorConsts.favoriteTagColor[gallery.favoriteTagIndex!]),
+            if (gallery.isFavorite) EHGalleryFavoriteTag(name: gallery.favoriteTagName!, color: ColorConsts.favoriteTagColor[gallery.favoriteTagIndex!]),
             if (gallery.language != null)
               Text(
                 LocaleConsts.language2Abbreviation[gallery.language] ?? '',
-                style: TextStyle(fontSize: UIConfig.galleryCardTextSize, color: UIConfig.galleryCardTextColor),
+                style: TextStyle(fontSize: UIConfig.galleryCardTextSize, color: UIConfig.galleryCardTextColor(context)),
               ).marginOnly(left: 4),
             if (gallery.pageCount != null) ...[
-              Icon(Icons.panorama, size: UIConfig.galleryCardTextSize, color: UIConfig.galleryCardTextColor).marginOnly(right: 1, left: 6),
+              Icon(Icons.panorama, size: UIConfig.galleryCardTextSize, color: UIConfig.galleryCardTextColor(context)).marginOnly(right: 1, left: 6),
               Text(
                 gallery.pageCount.toString(),
-                style: TextStyle(fontSize: UIConfig.galleryCardTextSize, color: UIConfig.galleryCardTextColor),
+                style: TextStyle(fontSize: UIConfig.galleryCardTextSize, color: UIConfig.galleryCardTextColor(context)),
               ),
             ],
           ],
@@ -293,10 +299,10 @@ class _GalleryInfoFooter extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildRatingBar(),
+            _buildRatingBar(context),
             Text(
               DateUtil.transform2LocalTimeString(gallery.publishTime),
-              style: TextStyle(fontSize: UIConfig.galleryCardTextSize, color: UIConfig.galleryCardTextColor),
+              style: TextStyle(fontSize: UIConfig.galleryCardTextSize, color: UIConfig.galleryCardTextColor(context), decoration: gallery.isExpunged ? TextDecoration.lineThrough : null),
             ),
           ],
         ),
@@ -304,9 +310,9 @@ class _GalleryInfoFooter extends StatelessWidget {
     );
   }
 
-  Widget _buildRatingBar() {
+  Widget _buildRatingBar(BuildContext context) {
     return RatingBar.builder(
-      unratedColor: Colors.grey.shade300,
+      unratedColor: UIConfig.galleryRatingStarUnRatedColor(context),
       initialRating: gallery.rating,
       itemCount: 5,
       allowHalfRating: true,
@@ -314,7 +320,7 @@ class _GalleryInfoFooter extends StatelessWidget {
       ignoreGestures: true,
       itemBuilder: (context, _) => Icon(
         Icons.star,
-        color: gallery.hasRated ? UIConfig.resumeButtonColor : Colors.amber.shade800,
+        color: gallery.hasRated ? UIConfig.galleryRatingStarRatedColor(context) : UIConfig.galleryRatingStarColor,
       ),
       onRatingUpdate: (rating) {},
     );

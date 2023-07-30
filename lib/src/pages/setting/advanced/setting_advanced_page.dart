@@ -1,5 +1,6 @@
 import 'dart:io' as io;
 
+import 'package:android_intent_plus/android_intent.dart';
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -34,15 +35,16 @@ class _SettingAdvancedPageState extends State<SettingAdvancedPage> {
             _buildEnableLogging(),
             if (AdvancedSetting.enableLogging.isTrue) _buildRecordAllLogs().fadeIn(),
             _buildOpenLogs(),
-
-            /// Can't delete file that file is being used on Windows
-            if (!GetPlatform.isWindows) _buildClearLogs(),
-            _buildClearImageCache(),
+            _buildClearLogs(context),
+            _buildClearImageCache(context),
             _buildClearNetworkCache(),
+            if (GetPlatform.isDesktop) _buildSuperResolution(),
             _buildCheckUpdate(),
             _buildCheckClipboard(),
+            if (GetPlatform.isAndroid) _buildVerifyAppLinks(),
+            _buildInNoImageMode(),
           ],
-        ),
+        ).withListTileTheme(context),
       ),
     );
   }
@@ -50,14 +52,15 @@ class _SettingAdvancedPageState extends State<SettingAdvancedPage> {
   Widget _buildEnableLogging() {
     return ListTile(
       title: Text('enableLogging'.tr),
-      trailing: Switch(value: AdvancedSetting.enableLogging.value, onChanged: AdvancedSetting.saveEnableLogging),
       subtitle: Text('needRestart'.tr),
+      trailing: Switch(value: AdvancedSetting.enableLogging.value, onChanged: AdvancedSetting.saveEnableLogging),
     );
   }
 
   Widget _buildRecordAllLogs() {
     return ListTile(
       title: Text('enableVerboseLogging'.tr),
+      subtitle: Text('needRestart'.tr),
       trailing: Switch(value: AdvancedSetting.enableVerboseLogging.value, onChanged: AdvancedSetting.saveEnableVerboseLogging),
     );
   }
@@ -70,25 +73,27 @@ class _SettingAdvancedPageState extends State<SettingAdvancedPage> {
     );
   }
 
-  Widget _buildClearLogs() {
+  Widget _buildClearLogs(BuildContext context) {
     return ListTile(
       title: Text('clearLogs'.tr),
       subtitle: Text('longPress2Clear'.tr),
-      trailing: Text(Log.getSize(), style: TextStyle(color: UIConfig.resumeButtonColor, fontWeight: FontWeight.w500)).marginOnly(right: 8),
+      trailing: Text(Log.getSize(), style: TextStyle(color: UIConfig.resumePauseButtonColor(context), fontWeight: FontWeight.w500)).marginOnly(right: 8),
       onLongPress: () {
         Log.clear();
-        setState(() {
-          toast('clearSuccess'.tr, isCenter: false);
-        });
+        toast('clearSuccess'.tr, isCenter: false);
+        Future.delayed(
+          const Duration(milliseconds: 600),
+          () => setState(() {}),
+        );
       },
     );
   }
 
-  Widget _buildClearImageCache() {
+  Widget _buildClearImageCache(BuildContext context) {
     return ListTile(
       title: Text('clearImagesCache'.tr),
       subtitle: Text('longPress2Clear'.tr),
-      trailing: Text(_getImagesCacheSize(), style: TextStyle(color: UIConfig.resumeButtonColor, fontWeight: FontWeight.w500)).marginOnly(right: 8),
+      trailing: Text(_getImagesCacheSize(), style: TextStyle(color: UIConfig.resumePauseButtonColor(context), fontWeight: FontWeight.w500)).marginOnly(right: 8),
       onLongPress: () async {
         await clearDiskCachedImages();
         setState(() {
@@ -109,6 +114,14 @@ class _SettingAdvancedPageState extends State<SettingAdvancedPage> {
     );
   }
 
+  Widget _buildSuperResolution() {
+    return ListTile(
+      title: Text('superResolution'.tr),
+      trailing: const Icon(Icons.keyboard_arrow_right).marginOnly(right: 4),
+      onTap: () => toRoute(Routes.superResolution),
+    );
+  }
+
   Widget _buildCheckUpdate() {
     return ListTile(
       title: Text('checkUpdateAfterLaunchingApp'.tr),
@@ -120,6 +133,33 @@ class _SettingAdvancedPageState extends State<SettingAdvancedPage> {
     return ListTile(
       title: Text('checkClipboard'.tr),
       trailing: Switch(value: AdvancedSetting.enableCheckClipboard.value, onChanged: AdvancedSetting.saveEnableCheckClipboard),
+    );
+  }
+
+  Widget _buildVerifyAppLinks() {
+    return ListTile(
+      title: Text('verityAppLinks4Android12'.tr),
+      subtitle: Text('verityAppLinks4Android12Hint'.tr),
+      trailing: const Icon(Icons.keyboard_arrow_right).marginOnly(right: 4),
+      onTap: () async {
+        try {
+          await const AndroidIntent(
+            action: 'android.settings.APP_OPEN_BY_DEFAULT_SETTINGS',
+            data: 'package:top.jtmonster.jhentai',
+          ).launch();
+        } on Exception catch (e) {
+          Log.error(e);
+          Log.upload(e);
+          toast('error'.tr);
+        }
+      },
+    );
+  }
+  
+  Widget _buildInNoImageMode(){
+    return ListTile(
+      title: Text('noImageMode'.tr),
+      trailing: Switch(value: AdvancedSetting.inNoImageMode.value, onChanged: AdvancedSetting.saveInNoImageMode),
     );
   }
 

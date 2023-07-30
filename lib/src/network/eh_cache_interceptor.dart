@@ -1,8 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
-import 'package:dio_cache_interceptor/src/model/cache_cipher.dart';
 import 'package:dio_cache_interceptor/src/model/cache_strategy.dart';
-import 'package:dio_cache_interceptor/src/model/cache_options.dart';
 import 'package:dio_cache_interceptor/src/util/response_extension.dart';
 import 'package:dio_cache_interceptor_db_store/dio_cache_interceptor_db_store.dart';
 import 'package:get/get_core/src/get_main.dart';
@@ -165,6 +163,15 @@ class EHCacheInterceptor extends Interceptor {
     }
 
     handler.next(err);
+  }
+
+  Future<void> removeGalleryDetailPageCache(String galleryUrl) {
+    return Future.wait(
+      [
+        removeCacheByUrl('$galleryUrl?p=0&hc=0'),
+        removeCacheByUrl('$galleryUrl?p=0&hc=1'),
+      ],
+    );
   }
 
   Future<void> removeCacheByUrl(String url) async {
